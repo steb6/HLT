@@ -1,0 +1,8 @@
+venv
+experiments/acd/*
+experiments/acp/*
+embeddings/raw/wiki*
+embeddings/embeddings*
+data/raw/absita*
+data/absita*
+.idea
