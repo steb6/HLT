@@ -1,6 +1,6 @@
 venv
-experiments/acd/*
-experiments/acp/*
+experiments/acd/model*
+experiments/acp/model*
 embeddings/raw/wiki*
 embeddings/embeddings*
 data/raw/absita*
