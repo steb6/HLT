@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.14159265-2.6-1.40.20 (TeX Live 2019/Debian) (preloaded format=pdflatex 2020.4.27)  28 APR 2020 16:02
+This is pdfTeX, Version 3.14159265-2.6-1.40.20 (TeX Live 2019/Debian) (preloaded format=pdflatex 2020.4.27)  28 APR 2020 16:48
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -153,44 +153,61 @@ LaTeX Warning: `!h' float specifier changed to `!ht'.
 <model.png, id=13, 1947.275pt x 903.375pt>
 File: model.png Graphic file (type png)
 <use model.png>
-Package pdftex.def Info: model.png  used on input line 86.
+Package pdftex.def Info: model.png  used on input line 85.
 (pdftex.def)             Requested size: 345.0pt x 160.05037pt.
 <../experiments/acp/plots.png, id=14, 1156.32pt x 264.5082pt>
 File: ../experiments/acp/plots.png Graphic file (type png)
 <use ../experiments/acp/plots.png>
-Package pdftex.def Info: ../experiments/acp/plots.png  used on input line 94.
+Package pdftex.def Info: ../experiments/acp/plots.png  used on input line 93.
 (pdftex.def)             Requested size: 345.0pt x 78.91716pt.
  [2] [3 <./model.png> <../experiments/acp/plots.png>]
 <../experiments/acd/plots.png, id=24, 1156.32pt x 264.5082pt>
 File: ../experiments/acd/plots.png Graphic file (type png)
 <use ../experiments/acd/plots.png>
-Package pdftex.def Info: ../experiments/acd/plots.png  used on input line 110.
+Package pdftex.def Info: ../experiments/acd/plots.png  used on input line 109.
 (pdftex.def)             Requested size: 345.0pt x 78.91716pt.
 
 
 LaTeX Warning: `!h' float specifier changed to `!ht'.
 
-[4 <../experiments/acd/plots.png>] [5] (./report.aux) ) 
+[4 <../experiments/acd/plots.png>]
+<../experiments/acp/no_onehot.png, id=29, 1156.32pt x 264.5082pt>
+File: ../experiments/acp/no_onehot.png Graphic file (type png)
+<use ../experiments/acp/no_onehot.png>
+Package pdftex.def Info: ../experiments/acp/no_onehot.png  used on input line 1
+81.
+(pdftex.def)             Requested size: 345.0pt x 78.91716pt.
+<../experiments/acp/without_preprocessing.png, id=30, 1156.32pt x 264.5082pt>
+File: ../experiments/acp/without_preprocessing.png Graphic file (type png)
+<use ../experiments/acp/without_preprocessing.png>
+Package pdftex.def Info: ../experiments/acp/without_preprocessing.png  used on 
+input line 186.
+(pdftex.def)             Requested size: 345.0pt x 78.91716pt.
+ [5] [6 <../experiments/acp/no_onehot.png> <../experiments/acp/without_preproce
+ssing.png>] (./report.aux)
+
+LaTeX Warning: Label(s) may have changed. Rerun to get cross-references right.
+
+ ) 
 Here is how much of TeX's memory you used:
- 1461 strings out of 494553
- 21130 string characters out of 6177377
- 84468 words of memory out of 5000000
- 5141 multiletter control sequences out of 15000+600000
+ 1474 strings out of 494553
+ 21575 string characters out of 6177377
+ 83468 words of memory out of 5000000
+ 5152 multiletter control sequences out of 15000+600000
  5158 words of font info for 19 fonts, out of 8000000 for 9000
  14 hyphenation exceptions out of 8191
- 41i,8n,25p,355b,318s stack positions out of 5000i,500n,10000p,200000b,80000s
-</usr/share/texlive/texm
-f-dist/fonts/type1/public/amsfonts/cm/cmbx10.pfb></usr/share/texlive/texmf-dist
-/fonts/type1/public/amsfonts/cm/cmbx12.pfb></usr/share/texlive/texmf-dist/fonts
-/type1/public/amsfonts/cm/cmmi10.pfb></usr/share/texlive/texmf-dist/fonts/type1
-/public/amsfonts/cm/cmr10.pfb></usr/share/texlive/texmf-dist/fonts/type1/public
-/amsfonts/cm/cmr12.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfon
-ts/cm/cmsy10.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/
-cmsy7.pfb>
-Output written on report.pdf (5 pages, 336714 bytes).
+ 41i,8n,25p,391b,318s stack positions out of 5000i,500n,10000p,200000b,80000s
+</usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx10.pfb></us
+r/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx12.pfb></usr/shar
+e/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb></usr/share/texl
+ive/texmf-dist/fonts/type1/public/amsfonts/cm/cmr10.pfb></usr/share/texlive/tex
+mf-dist/fonts/type1/public/amsfonts/cm/cmr12.pfb></usr/share/texlive/texmf-dist
+/fonts/type1/public/amsfonts/cm/cmsy10.pfb></usr/share/texlive/texmf-dist/fonts
+/type1/public/amsfonts/cm/cmsy7.pfb>
+Output written on report.pdf (6 pages, 464491 bytes).
 PDF statistics:
- 55 PDF objects out of 1000 (max. 8388607)
- 34 compressed objects within 1 object stream
+ 62 PDF objects out of 1000 (max. 8388607)
+ 36 compressed objects within 1 object stream
  0 named destinations out of 1000 (max. 500000)
- 16 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 26 words of extra memory for PDF output out of 10000 (max. 10000000)
 
