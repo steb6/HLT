@@ -24,3 +24,7 @@ import tensorflow.compat.v1 as tf
 tf.disable_v2_behavior() 
 - Empty figure: remove control
 - No optimizers: use this optimizer tf.keras.optimizers.Optimizer
+
+With tenworflow==2
+you will need to use this
+    graph = tf.get_default_graph()

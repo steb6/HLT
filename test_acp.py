@@ -5,13 +5,13 @@ import pandas as pd
 from utilities.model import model
 import numpy
 from utilities.eng_to_ita import traduction
-from utilities.y_converter import y_label_to_category_map, y_category_to_onehot
+from utilities.y_converter import y_label_to_category_map, y_category_to_onehot, onehot_to_category
 
 # If we want to save results as Absita file
 ABSITA = True
 
 # Test file
-test_file = 'absita_results_acd.tsv'
+test_file = 'data/absita_results_acd.tsv'
 
 # Embeddings dimension
 embeddings_dimension = (667566, 300)
@@ -121,7 +121,7 @@ for a in aux:
     topics.append(traduction_inverted[a])
 
 # Change results from one-hot to categories:
-results_categories = onehot_to_categories(results)
+results_categories = onehot_to_category(results)
 
 # Change results_categories from categories to label
 results_label = []
@@ -155,3 +155,5 @@ with open('data/raw/absita_results_acp.csv', 'w+') as f:
         for elem in absita[i].keys():
             f.write(str(absita[i][elem])+';')
         f.write('\n')
+
+print("Created result in data/raw/absita_results_acp.csv")

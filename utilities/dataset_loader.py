@@ -17,7 +17,6 @@ def clean_text(text):
 def load_dataset(filename):
 
     data = {}
-    filename = 'data/'+filename
     print("Parsing file:", filename)
 
     for line_id, line in enumerate(open(filename, "r", encoding="utf-8").readlines()):

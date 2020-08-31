@@ -30,8 +30,8 @@ embeddings_file = "embeddings"
 embeddings_dimension = 300
 
 # Data name
-data_file = 'train.tsv'
-test_file = 'test.tsv'
+data_file = 'data/train.tsv'
+test_file = 'data/test.tsv'
 
 ########################################################################################################################
 # Setting on embeddings and dataset #
