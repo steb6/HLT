@@ -10,7 +10,7 @@ from keras.callbacks import ModelCheckpoint
 import pickle
 from sklearn.model_selection import train_test_split
 from kutilities.helpers.data_preparation import labels_to_categories, categories_to_onehot, get_labels_to_categories_map
-from utilities.y_label_to_category_map import y_label_to_category_map
+from utilities.y_converter import y_label_to_category_map
 
 ########################################################################################################################
 # Setting variables #
@@ -31,8 +31,8 @@ embeddings_file = "embeddings"
 embeddings_dimension = 300
 
 # Data name
-data_file = 'train.tsv'
-test_file = 'test.tsv'
+data_file = 'data/train.tsv'
+test_file = 'data/test.tsv'
 
 ########################################################################################################################
 # Setting on embeddings and dataset #

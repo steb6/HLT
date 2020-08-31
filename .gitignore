@@ -6,3 +6,4 @@ embeddings/embeddings*
 data/raw/absita*
 data/absita*
 .idea
+utilities/__pycache__
