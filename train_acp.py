@@ -11,6 +11,7 @@ import pickle
 from sklearn.model_selection import train_test_split
 from kutilities.helpers.data_preparation import labels_to_categories, categories_to_onehot, get_labels_to_categories_map
 from utilities.y_converter import y_label_to_category_map
+import tensorflow as tf
 
 ########################################################################################################################
 # Setting variables #
@@ -152,11 +153,15 @@ _datasets = {"1-train": ((x_train, y_train_one_hot),),
 metrics_callback = MetricsCallback(datasets=_datasets, metrics=metrics)
 weights = WeightsCallback(parameters=["W"], stats=["raster", "mean", "std"])
 # f1-score: 0.7673
-plotting = PlottingCallback(grid_ranges=(0.5, 1), height=4, benchmarks={"ρ": 0.8264, "r": 0.716}, plot_name=plot_file)
+# plotting = PlottingCallback(grid_ranges=(0.5, 1), height=4, benchmarks={"ρ": 0.8264, "r": 0.716}, plot_name=plot_file)
 checkpointer = ModelCheckpoint(filepath=best_model, monitor='2-val.recall',
                                mode="max", verbose=1, save_best_only=True)
 
-_callbacks = [metrics_callback, plotting, weights, checkpointer]
+tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir='./logs',
+                                                      profile_batch=5)
+
+#_callbacks = [metrics_callback, tensorboard_callback, weights, checkpointer]
+_callbacks = [tensorboard_callback]
 
 ########################################################################################################################
 # Class weights and fitting #

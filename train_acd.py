@@ -10,6 +10,7 @@ from kutilities.callbacks import MetricsCallback, WeightsCallback, PlottingCallb
 from keras.callbacks import ModelCheckpoint
 import pickle
 from sklearn.model_selection import train_test_split
+import tensorflow as tf
 
 ########################################################################################################################
 # Setting variables #
@@ -144,7 +145,10 @@ plotting = PlottingCallback(grid_ranges=(0.5, 1), height=4, benchmarks={"ρ": 0.
 checkpointer = ModelCheckpoint(filepath=best_model, monitor='2-val.recall',
                                mode="max", verbose=1, save_best_only=True)
 
-_callbacks = [metrics_callback, plotting, weights, checkpointer]
+tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir='./logs',
+                                                      profile_batch=5)
+
+_callbacks = [metrics_callback, tensorboard_callback, weights, checkpointer]
 
 ########################################################################################################################
 # Class weights and fitting #
