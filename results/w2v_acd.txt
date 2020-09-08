@@ -1,0 +1,14 @@
+Task ACD:
+        Macro-Precision: 0.7814
+        Macro-Recall: 0.8511
+        Macro-F1-score: 0.8148
+        Micro-Precision: 0.7251
+        Micro-Recall: 0.8304
+        Micro-F1-score: 0.7742
+Task ACP:
+        Macro-Precision: 0.0000
+        Macro-Recall: 0.0000
+        Macro-F1-score: 0.0000
+        Micro-Precision: 0.0000
+        Micro-Recall: 0.0000
+        Micro-F1-score: 0.0000

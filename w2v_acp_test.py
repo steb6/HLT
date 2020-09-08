@@ -11,7 +11,7 @@ from utilities.y_converter import y_label_to_category_map, y_category_to_onehot,
 ABSITA = True
 
 # Test file
-test_file = 'data/absita_results_acd.tsv'
+test_file = 'data/test.tsv'
 
 # Embeddings dimension
 embeddings_dimension = (667566, 300)
@@ -21,8 +21,8 @@ text_max_length = 50
 target_max_length = 1
 
 # Where to load the model
-best_model = "experiments/acp/model.dhf5"
-best_model_word_indices = "experiments/acp/model_word_indices.pickle"
+best_model = "experiments/w2v/acp/checkpoint"
+best_model_word_indices = "experiments/w2v/acp/model_word_indices.pickle"
 
 # Read word indices
 with open(best_model_word_indices, 'rb') as f:
@@ -144,7 +144,7 @@ for i, result, topic in zip(ids, results_label, topics):
         raise Exception()
 
 # Write into file
-with open('data/raw/absita_results_acp.csv', 'w+') as f:
+with open('data/raw/w2v_acp_test_results.csv', 'w+') as f:
     for column in columns:
         f.write(column+';')
     f.write('\n')
@@ -156,4 +156,4 @@ with open('data/raw/absita_results_acp.csv', 'w+') as f:
             f.write(str(absita[i][elem])+';')
         f.write('\n')
 
-print("Created result in data/raw/absita_results_acp.csv")
+print("Created result in data/raw/w2v_acp_test_results.csv")

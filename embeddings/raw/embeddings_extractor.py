@@ -1,7 +1,7 @@
 from gensim.models import Word2Vec
 import tqdm
 
-input_emb = "rawwiki_iter=5_algorithm=skipgram_window=10_size=300_neg-samples=10.m"
+input_emb = "raw/wiki_iter=5_algorithm=skipgram_window=10_size=300_neg-samples=10.m"
 
 output_emb = "../embeddings300.txt"
 

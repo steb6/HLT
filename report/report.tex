@@ -27,10 +27,12 @@
     % Abstract %
     The aim of this project is to apply the model
     \\\centerline{https://github.com/cbaziotis/datastories-semeval2017-task4}
-    To the Aspect Category Polarity task of the absita competition
+    To the Aspect Category Polarity task of the Absita competition
     \\\centerline{http://sag.art.uniroma2.it/absita}
-    And I will get the highest score.
-    I will also try to apply the same model to the Aspect Category Detection, and I will try various test and approaches.
+    To show the strength of the proposed model.
+    I will also try to apply the same model to the Aspect Category Detection task and I will try two different word
+    vectors strategies: the Italian Word2Vec (https://mlunicampania.gitlab.io/italian-word2vec/) and the Italian BERT
+    AlBERTo (https://github.com/ marcopoli/AlBERTo-it)
 
 
     \section{Task, dataset and metrics}\label{sec:s1}
@@ -39,7 +41,8 @@
             \item \textbf{ACD}: Aspect Category Detection, to understand which topic is dealt inside the review
             \item \textbf{ACP}: Aspect Category Polarity, given a review and a topic, understand if the topic is dealt in a positive, negative, neutral or mixed way
         \end{itemize}
-        Obviously the second task is dependent from the first one, but we will also see it as a independent tasks.
+        Obviously the second task is dependent from the first one, but we will see it as a independent tasks
+        because otherwise, the results of the second task couldn't be better than the result of the first task.
         I transformed the given dataset in order to obtain a tsv file of the form
         \\\centerline{id, topic, y, review}
         where
@@ -62,29 +65,27 @@
             \end{center}
         \end{table}
         Since I didn't have a single element for neutral review neither in train set nor test set, I decided to remove it from the possible classes.
-        I also had to create negative samples for the ACD train and test set, since I only had positive samples.
-        In order to do so, for each review and for each topic I added that review with that topic with and $negative$ as y with a certain probability, that I set to value 0.2.
         The metrics used in this competition were $micro-precision$, $micro-recall$ and $f1-score$.
 
-    \section{Possible models}\label{sec:s2}
-        These tasks like others sentiment analysis tasks can be approached with statistical models and a correct preprocessing of the text.
-        LinearSVC combined with lemmatization is very good in understanding which topic is dealt inside a review, and other statistical approaches can give us good results in sentiment analysis, but here we are aiming to something more complex: our model can also understand if a review contains mixed sentiment, which in a single review can help us understand more information.
-        Also BERT fine tuning could be good, but it is not topic-related, so it would give us information about the entire review, without paying attention to the different topics and the different sentiments towards them.
-
-    \section{Description of model chosen}\label{sec:s3}
+    \section{Description of the models}\label{sec:s3}
         The model chosen is the one who wins the $Semeval2017$, which tasks were very similar to this one.
         It is a deep-learning model with context-aware attention:
         \begin{itemize}
-            \item It embeds each word of the sentences and the topic using the same word embeddings.
+            \item The inputs are word indices to be embedded in the EmbeddingLayer for the Word2Vec version or sentences already embedded for the AlBERTo version (with topics and sentiments, of course)
             \item It feeds each embedding in a LSTM. It does the same with the topic using the same weights in order to try to get meaningful representation.
             \item It concatenates each word representation with the topic representation
             \item It uses a context-aware attention mechanism, which tries to understand which part of the reviews contribute more to understand better sentiment/references towards the topic
             \item It feeds those representations in a dense layer with a single sigmoid neuron for task ACD and 3 softmax neurons for task ACP
         \end{itemize}
         \begin{figure}
-            \includegraphics[width=\linewidth]{model.png}
-            \caption{The model used for both tasks}
-            \label{fig:model}
+            \includegraphics[width=\linewidth]{w2v_model.png}
+            \caption{The model that uses Word2Vec}
+            \label{fig:w2v_model}
+        \end{figure}
+            \begin{figure}
+            \includegraphics[width=\linewidth]{alberto_model.png}
+            \caption{The model that uses AlBERTo}
+            \label{fig:alberto_model}
         \end{figure}
 
     \section{Experiments}\label{sec:s4}
@@ -94,16 +95,27 @@
                 \caption{Training plot for acp task}
                 \label{fig:train-acp}
             \end{figure}
-            Initially I only considered the positive and negative classes because of the very few mixed samples, by assigning to mixed reviews a random sentiment, and, although this gives nice results, I moved from a one sigmoid output neuron for positive and negative class, to 3 softmax output neurons for positive, negative and mixed class.
-            I did lose some accuracy, around 5\%, but theoretically this way is more consistent to the task.
-            I used class weights, which help dealing with imbalanced datasets by weighting more the misclassified prediction of a class with a limited number of example.
+            Initially I only considered the positive and negative classes because of the very few mixed samples, by assigning to
+            mixed reviews a random sentiment, and, although this gives nice results, I moved from a one sigmoid output neuron for
+            positive and negative class, to 3 softmax output neurons for positive, negative and mixed class.
+            I used class weights, which help dealing with imbalanced datasets by weighting more the misclassified prediction of a class
+            with a limited number of example.
             In my case the class weights used were 1.26 for negative, 1.0 for positive and 8.14 for mixed.
-            Embeddings are given in a txt file, but after the first loading, they are formatted as dictionary and saved in a pickle file to speed up following loading.
-            Initially I made some experiments using a word embedding whose dimension was 128, but this lead to a slow and limited training, that couldn't overtake the accuracy score of 0.55, which was very bad.
+            \subsubsection{Word2Vec}
+            Embeddings are given in a txt file, but after the first loading, they are formatted as dictionary and saved in a pickle file
+            to speed up following loading.
+            Initially I made some experiments using a word embedding whose dimension was 128 (http://www.italianlp.it/resources/italian-word-embeddings/), but this lead to a slow and limited training, that couldn't overtake the accuracy score of 0.55, which was very bad.
             So I moved to a more informative embeddings which size is 300, and although the big dimension of 2.4GB and the poor quality of most of the entries, it gives good results.
-            I didn't do a lot of preprocessing of the reviews, since the embedding size is big (667564 words one removed the non-ascii ones) and it could cover the 85\% of the words, but looking better at the words that were indexed as $<unk>$, a lot of them were words with a capital letter.
+            I didn't do a lot of preprocessing of the reviews, since the embedding size is big (667564 words once removed the non-ascii ones) and it could cover the 85\% of the words, but looking better at the words that were indexed as $<unk>$, a lot of them were words with a capital letter.
             So by setting all chars lowercase, without losing much information because no proper name was present in the dataset, and just by removing all \textbf{l'}, the coverage of ward embeddings increased to 95\%.
             This can be increased more correcting typo using edit distance for example, but I did not investigating further since this improved coverage improved my metrics by more or less 0.04, that was what I needed.
+            \subsubsection{AlBERTo}
+            I used Huggingface Transformers to download AlBERTo model and tokenizer, then I decided to generate an "AlBERTed" version of the dataset,
+            in this way I don't need to calculate the embeddings during the training because I have already computed them,
+            and this result in a faster training at the cost to spend time and space to generate and save it.
+            The tokenizer managed to index all the words.
+            The dimension of these embeddings is 768, which is much larger than the Word2Vec ones
+
         \subsection{ACD}\label{subsec:s2}
             \begin{figure}
                 \includegraphics[width=\linewidth]{../experiments/acd/plots.png}
@@ -114,7 +126,12 @@
             So I proceed modifying the dataset in such a way to only detect if a topic is dealt in a review, and not in which way it is dealt.
             The idea is that the context-aware attention should learn which words refers to a specific topic.
             So I tried various probability to add a negative sample (see ACD dataset description) since I obtain both class weights around 1.0, hoping that a balanced dataset could give better results.
+            I also had to create negative samples for the ACD train and test set, since obviously I only had positive samples.
+            In order to do so, for each review $r$ and for each absent topic $t$ I added the sample $("negative", t, r)$ with a certain probability, that I set to value 0.2.
 
+            \subsubsection{Word2Vec}
+
+            \subsubsection{AlBERTo}
 
 
     \section{Results}\label{sec:s5}

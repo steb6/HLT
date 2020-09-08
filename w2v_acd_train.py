@@ -1,16 +1,13 @@
 from utilities.embeddings_loader import load_embeddings
 from utilities.matrix_wv_generator import matrix_wv_generator
 from utilities.dataset_loader import load_dataset
-from utilities.dataset_indexxer import index_x
+from utilities.dataset_indexxer import index_x, index_y
 from utilities.model import model
-from kutilities.helpers.data_preparation import get_class_weights2
-from sklearn.metrics import precision_score, recall_score, f1_score
-from kutilities.callbacks import MetricsCallback, WeightsCallback, PlottingCallback
+from utilities.negative_samples_adder import add_negative_samples
+from kutilities.helpers.data_preparation import get_labels_to_categories_map, get_class_weights2
 from keras.callbacks import ModelCheckpoint
 import pickle
 from sklearn.model_selection import train_test_split
-from kutilities.helpers.data_preparation import labels_to_categories, categories_to_onehot, get_labels_to_categories_map
-from utilities.y_converter import y_label_to_category_map
 import tensorflow as tf
 
 ########################################################################################################################
@@ -22,10 +19,9 @@ text_max_length = 50
 target_max_length = 1
 
 # Where to save the model
-best_model = "experiments/acp/model.dhf5"
-best_model_word_indices = "experiments/acp/model_word_indices.pickle"
-history_file = "experiments/acp/model_history.pickle"
-plot_file = "acp/plots"
+best_model = "experiments/w2v/acd/checkpoint"
+best_model_word_indices = "experiments/w2v/acd/model_word_indices.pickle"
+history_file = "experiments/w2v/acd/model_history.pickle"
 
 # Embeddings files
 embeddings_file = "embeddings"
@@ -52,30 +48,40 @@ print("Embedding matrix and word indices generated")
 training = load_dataset(data_file)
 testing = load_dataset(test_file)
 
-# Remove ids converting dict into list
-training = list(training.values())
+# Set all positive
+for key in training.keys():
+    value = list(training[key])
+    value[0] = 'positive'
+    training[key] = tuple(value)
 
-# Get x and y from training list
+for key in testing.keys():
+    value = list(testing[key])
+    value[0] = 'positive'
+    testing[key] = tuple(value)
+
+# Add negative samples
+categories = list(set([elem[1][0] for elem in list(training.values())]))
+training = add_negative_samples(training, categories, 0.2)
+testing = add_negative_samples(testing, categories, 0.2)
+
+# Get x, y
+training = list(training.values())
 x = [elem[1] for elem in training]
 y = [elem[0] for elem in training]
 
-# Divide training set into training and validation
+# Divide into training and validation
 x_train, x_val, y_train, y_val = train_test_split(x, y, test_size=0.3, stratify=y, random_state=42)
 
-# Remove id converting dict into list
+# Get x, y from testing set
 testing = list(testing.values())
-
-# Get x and y from testing list
 x_test = [elem[1] for elem in testing]
 y_test = [elem[0] for elem in testing]
 
-# Print statistics
+# Print control
 print("Rode {} training reviews, {} validation reviews and {} testing reviews".format(
     len(x_train), len(x_val), len(x_test)))
 
-# Index dataset: word_indices
-# Senza lower e remove l', il 15% era sconosciuto
-# ora il 5%
+# Index dataset
 x_train = index_x(data=x_train, target_max_length=target_max_length, text_max_length=text_max_length,
                   word_indices=word_indices)
 x_val = index_x(data=x_val, target_max_length=target_max_length, text_max_length=text_max_length,
@@ -84,29 +90,16 @@ x_test = index_x(data=x_test, target_max_length=target_max_length, text_max_leng
                  word_indices=word_indices)
 print("x indexed")
 
-# Index y: one hot encoding
-y_train_categories = labels_to_categories(y_train)
-y_train_one_hot = categories_to_onehot(y_train_categories)
-y_train_map = get_labels_to_categories_map(y_train)
-
-y_val_categories = labels_to_categories(y_val)
-y_val_one_hot = categories_to_onehot(y_val_categories)
-y_val_map = get_labels_to_categories_map(y_val)
-
-y_test_categories = labels_to_categories(y_test)
-y_test_one_hot = categories_to_onehot(y_test_categories)
-y_test_map = get_labels_to_categories_map(y_test)
-
-# Assert values are categorized in the same way
-assert y_train_map == y_val_map == y_test_map == y_label_to_category_map
-lab_to_cat = y_train_map
+y_train = index_y(y_train, {'positive': 1, 'negative': 0})
+y_val = index_y(y_val, {'positive': 1, 'negative': 0})
+y_test = index_y(y_test, {'positive': 1, 'negative': 0})
 print("y indexed")
 
 
 ########################################################################################################################
 # NN model #
 ########################################################################################################################
-classes = ['negative', 'mixed', 'positive']
+classes = ['negative', 'positive']
 
 print("Building NN Model...")
 nn_model = model(embeddings_matrix,
@@ -131,50 +124,31 @@ print(nn_model.summary())
 # Callbacks #
 ########################################################################################################################
 
-# Retrieve class name
-cat_to_class_mapping = {v: k for k, v in lab_to_cat.items()}
+# define metrics and class weights
+cat_to_class_mapping = {v: k for k, v in get_labels_to_categories_map(classes).items()}
 
-# Check that class weights correspond to right categorical value
-assert y_train_map == y_val_map == y_test_map == lab_to_cat
+# _datasets = {"1-train": ((x_train, y_train),), "2-val": (x_val, y_val), "3-test": (x_test, y_test)}
 
-# Define metrics
-metrics = {
-    "recall": (lambda y_true, y_pred: recall_score(y_true, y_pred, average='micro')),
-    "precision": (lambda y_true, y_pred: precision_score(y_true, y_pred, average='micro')),
-    "f1-score": (lambda y_true, y_pred: f1_score(y_true, y_pred, average='micro'))
-}
+# This function is made s.t. it can draw only 2 benchmarks: use "f1": 0.8108 if you want
+checkpointer = ModelCheckpoint(filepath=best_model, monitor='val_accuracy',
+                               mode="max", verbose=1, save_best_only=True, save_weights_only=True)
 
-# Define datasets for metrics evaluation
-_datasets = {"1-train": ((x_train, y_train_one_hot),),
-             "2-val": (x_val, y_val_one_hot),
-             "3-test": (x_test, y_test_one_hot)}
-
-# Define callbacks
-metrics_callback = MetricsCallback(datasets=_datasets, metrics=metrics)
-weights = WeightsCallback(parameters=["W"], stats=["raster", "mean", "std"])
-# f1-score: 0.7673
-# plotting = PlottingCallback(grid_ranges=(0.5, 1), height=4, benchmarks={"ρ": 0.8264, "r": 0.716}, plot_name=plot_file)
-checkpointer = ModelCheckpoint(filepath=best_model, monitor='2-val.recall',
-                               mode="max", verbose=1, save_best_only=True)
-
-tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir='./logs',
+tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir='./logs/w2v/acd',
                                                       profile_batch=5)
 
-#_callbacks = [metrics_callback, tensorboard_callback, weights, checkpointer]
-_callbacks = [tensorboard_callback]
+_callbacks = [tensorboard_callback, checkpointer]
 
 ########################################################################################################################
 # Class weights and fitting #
 ########################################################################################################################
-class_weights = get_class_weights2([elem for elem in y_train_categories], smooth_factor=0.1)
+class_weights = get_class_weights2(y_train, smooth_factor=0)
 
-print("Class weights:", {cat_to_class_mapping[c]: w for c, w in class_weights.items()})
-# Convert into number
-class_weights = {i: class_weights[w] for i, w in enumerate(class_weights.keys())}
+print("Class weights:",
+      {cat_to_class_mapping[c]: w for c, w in class_weights.items()})
 
-history = nn_model.fit(x_train, y_train_one_hot,
-                       validation_data=(x_val, y_val_one_hot),
-                       epochs=100, batch_size=64, class_weight=class_weights,
+history = nn_model.fit(x_train, y_train,
+                       validation_data=(x_val, y_val),
+                       epochs=50, batch_size=64, class_weight=class_weights,
                        callbacks=_callbacks)
 
 pickle.dump(history.history, open(history_file, "wb"))

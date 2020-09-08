@@ -19,12 +19,11 @@ text_max_length = 50
 target_max_length = 1
 
 # Where to save things
-best_model = "experiments/alberto/model.dhf5"
-history_file = "experiments/alberto/model_history.pickle"
-plot_file = "experiments/alberto/plots"
+best_model = "experiments/alberto/acp/checkpoint"
+history_file = "experiments/alberto/acp/model_history.pickle"
 
 # Check if pickle files exist, otherwise, construct it
-if not os.path.isfile("alberto/test_embedded.pickle"):
+if not os.path.isfile("data/alberto/acp/test_embedded.pickle"):
     print("alBERTed dataset not found, loading dataset and alberto to generate it...")
 
     # Load model
@@ -98,27 +97,33 @@ if not os.path.isfile("alberto/test_embedded.pickle"):
     assert y_train_map == y_val_map == y_test_map
     lab_to_cat = y_train_map
 
-    pickle.dump(train_embedded, open("alberto/train_embedded.pickle", "wb"))
-    pickle.dump(val_embedded, open("alberto/val_embedded.pickle", "wb"))
-    pickle.dump(test_embedded, open("alberto/test_embedded.pickle", "wb"))
-    pickle.dump(lab_to_cat, open("alberto/lab_to_cat.pickle", "wb"))
-    pickle.dump(y_train_categories, open("alberto/y_train_categories.pickle", "wb")) # for class weights
+    pickle.dump(train_embedded, open("data/alberto/acp/train_embedded.pickle", "wb"))
+    pickle.dump(val_embedded, open("data/alberto/acp/val_embedded.pickle", "wb"))
+    pickle.dump(test_embedded, open("data/alberto/acp/test_embedded.pickle", "wb"))
+    pickle.dump(lab_to_cat, open("data/alberto/acp/lab_to_cat.pickle", "wb"))
+    pickle.dump(y_train_categories, open("data/alberto/acp/y_train_categories.pickle", "wb")) # for class weights
 
 else: # we have the embeddings ready,w I just need to load them
 
     print("Pickle files for embeddings found!")
-    train_embedded = pickle.load(open("alberto/train_embedded.pickle", "rb"))
-    val_embedded = pickle.load(open("alberto/val_embedded.pickle", "rb"))
-    test_embedded = pickle.load(open("alberto/test_embedded.pickle", "rb"))
-    lab_to_cat = pickle.load(open("alberto/lab_to_cat.pickle", "rb"))
-    y_train_categories = pickle.load(open("alberto/y_train_categories.pickle", "rb"))
+    train_embedded = pickle.load(open("data/alberto/acp/train_embedded.pickle", "rb"))
+    val_embedded = pickle.load(open("data/alberto/acp/val_embedded.pickle", "rb"))
+    test_embedded = pickle.load(open("data/alberto/acp/test_embedded.pickle", "rb"))
+    lab_to_cat = pickle.load(open("data/alberto/acp/lab_to_cat.pickle", "rb"))
+    y_train_categories = pickle.load(open("data/alberto/acp/y_train_categories.pickle", "rb")) # for class weights
 
+# Transform data to be model input
 x_train = [elem[1] for elem in train_embedded]
-y_train = [elem[0] for elem in train_embedded]
+x_train = [np.array([elem[0] for elem in x_train]), np.array([elem[1] for elem in x_train])]
+y_train = np.array([elem[0] for elem in train_embedded])
+
 x_val = [elem[1] for elem in val_embedded]
-y_val = [elem[0] for elem in val_embedded]
+x_val = [np.array([elem[0] for elem in x_val]), np.array([elem[1] for elem in x_val])]
+y_val = np.array([elem[0] for elem in val_embedded])
+
 x_test = [elem[1] for elem in test_embedded]
-y_test = [elem[0] for elem in test_embedded]
+x_test = [np.array([elem[0] for elem in x_test]), np.array([elem[1] for elem in x_test])]
+y_test = np.array([elem[0] for elem in test_embedded])
 
 print("Dataset BERTed")
 
@@ -154,34 +159,13 @@ print(nn_model.summary())
 lab_to_cat = {'mixed': 0, 'negative': 1, 'positive': 2}
 cat_to_class_mapping = {v: k for k, v in lab_to_cat.items()}
 
-# Check that class weights correspond to right categorical value
-#assert y_train_map == y_val_map == y_test_map == lab_to_cat
 
-# Define metrics
-metrics = {
-    "recall": (lambda y_true, y_pred: recall_score(y_true, y_pred, average='micro')),
-    "precision": (lambda y_true, y_pred: precision_score(y_true, y_pred, average='micro')),
-    "f1-score": (lambda y_true, y_pred: f1_score(y_true, y_pred, average='micro'))
-}
-
-# Define datasets for metrics evaluation
-_datasets = {"1-train": ((x_train, y_train),),
-             "2-val": (x_val, y_val),
-             "3-test": (x_test, y_test)}
-
-# Define callbacks
-metrics_callback = MetricsCallback(datasets=_datasets, metrics=metrics)
-weights = WeightsCallback(parameters=["W"], stats=["raster", "mean", "std"])
-# f1-score: 0.7673
-# plotting = PlottingCallback(grid_ranges=(0.5, 1), height=4, benchmarks={"ρ": 0.8264, "r": 0.716}, plot_name=plot_file)
-checkpointer = ModelCheckpoint(filepath=best_model, monitor='2-val.recall',
+checkpointer = ModelCheckpoint(filepath=best_model, monitor='val_accuracy',
                                mode="max", verbose=1, save_best_only=True)
 
-tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir='./logs',
-                                                      profile_batch=5)
+tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir='./logs/alberto/acp', histogram_freq=1)
 
-#_callbacks = [metrics_callback, tensorboard_callback, weights, checkpointer]
-_callbacks = [tensorboard_callback]
+_callbacks = [tensorboard_callback, checkpointer]
 
 ########################################################################################################################
 # Class weights and fitting #
@@ -192,20 +176,12 @@ print("Class weights:", {cat_to_class_mapping[c]: w for c, w in class_weights.it
 # Convert into number
 class_weights = {i: class_weights[w] for i, w in enumerate(class_weights.keys())}
 
-x_topic = np.array([elem[0] for elem in x_train])
-x_review = np.array([elem[1] for elem in x_train])
-x_train = [x_topic, x_review]
-
-x_val_topic = np.array([elem[0] for elem in x_val])
-x_val_review = np.array([elem[1] for elem in x_val])
-x_val = [x_val_topic, x_val_review]
-
-y_train = np.array(y_train)
-y_val = np.array(y_val)
-
 history = nn_model.fit(x_train, y_train, # si aspetta lista di due ndarray 6238x1 e 6238x50
                        validation_data=(x_val, y_val),
                        epochs=100, batch_size=64, class_weight=class_weights,
                        callbacks=_callbacks)
 
 pickle.dump(history.history, open(history_file, "wb"))
+
+loss, acc = nn_model.evaluate(x_test, y_test, verbose=2)
+print("Test set: accuracy: {:5.2f}%".format(100*acc))

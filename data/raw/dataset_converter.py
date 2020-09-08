@@ -82,7 +82,7 @@ def data_converter(in_file, output_file):
         print('{} appears {} times'.format(elem, sentiments.count(elem)))
 
 
-files = ['test', 'train', 'absita_results_acd', 'absita_results_acp']
+files = ['test', 'train', 'w2v_acp_test_results']#, 'w2v_acp_test_results']
 
 for file in files:
     try:
