@@ -1,5 +1,5 @@
 from keras.layers import Dropout, Dense, Bidirectional, LSTM, Embedding, GaussianNoise, concatenate, RepeatVector#, MaxoutDense
-
+import tensorflow as tf
 from keras.engine import Input
 from keras.regularizers import l2
 from kutilities.layers import AttentionWithContext, MeanOverTime
@@ -96,5 +96,5 @@ def model(wv, tweet_max_length, aspect_max_length, classes, **kwargs):
 
     final_model.compile(optimizer=Adam(clipnorm=clipnorm, lr=lr),
                         loss="binary_crossentropy" if classes == 2 else "categorical_crossentropy",
-                        metrics=['accuracy'])
+                        metrics=['accuracy', tf.keras.metrics.Recall()])
     return final_model

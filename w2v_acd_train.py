@@ -130,7 +130,7 @@ cat_to_class_mapping = {v: k for k, v in get_labels_to_categories_map(classes).i
 # _datasets = {"1-train": ((x_train, y_train),), "2-val": (x_val, y_val), "3-test": (x_test, y_test)}
 
 # This function is made s.t. it can draw only 2 benchmarks: use "f1": 0.8108 if you want
-checkpointer = ModelCheckpoint(filepath=best_model, monitor='val_accuracy',
+checkpointer = ModelCheckpoint(filepath=best_model, monitor='val_recall',
                                mode="max", verbose=1, save_best_only=True, save_weights_only=True)
 
 tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir='./logs/w2v/acd',

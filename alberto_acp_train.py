@@ -160,8 +160,8 @@ lab_to_cat = {'mixed': 0, 'negative': 1, 'positive': 2}
 cat_to_class_mapping = {v: k for k, v in lab_to_cat.items()}
 
 
-checkpointer = ModelCheckpoint(filepath=best_model, monitor='val_accuracy',
-                               mode="max", verbose=1, save_best_only=True)
+checkpointer = ModelCheckpoint(filepath=best_model, monitor='val_recall',
+                               mode="max", verbose=1, save_best_only=True, save_weights_only=True)
 
 tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir='./logs/alberto/acp', histogram_freq=1)
 

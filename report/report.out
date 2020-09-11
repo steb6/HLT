@@ -1,0 +1,12 @@
+\BOOKMARK [1][-]{section.1}{Task, dataset and metrics}{}% 1
+\BOOKMARK [1][-]{section.2}{Description of the models}{}% 2
+\BOOKMARK [2][-]{subsection.2.1}{ACP}{section.2}% 3
+\BOOKMARK [3][-]{subsubsection.2.1.1}{Word2Vec}{subsection.2.1}% 4
+\BOOKMARK [3][-]{subsubsection.2.1.2}{AlBERTo}{subsection.2.1}% 5
+\BOOKMARK [2][-]{subsection.2.2}{ACD}{section.2}% 6
+\BOOKMARK [3][-]{subsubsection.2.2.1}{Word2Vec}{subsection.2.2}% 7
+\BOOKMARK [3][-]{subsubsection.2.2.2}{AlBERTo}{subsection.2.2}% 8
+\BOOKMARK [1][-]{section.3}{Results}{}% 9
+\BOOKMARK [2][-]{subsection.3.1}{ACD}{section.3}% 10
+\BOOKMARK [2][-]{subsection.3.2}{ACP}{section.3}% 11
+\BOOKMARK [1][-]{section.4}{Conclusion}{}% 12

@@ -4,8 +4,7 @@ from utilities.dataset_loader import load_dataset
 from utilities.dataset_indexxer import index_x
 from utilities.model import model
 from kutilities.helpers.data_preparation import get_class_weights2
-from sklearn.metrics import precision_score, recall_score, f1_score
-from kutilities.callbacks import MetricsCallback, WeightsCallback
+import tensorflow as tf
 from keras.callbacks import ModelCheckpoint
 import pickle
 from sklearn.model_selection import train_test_split
@@ -137,7 +136,7 @@ cat_to_class_mapping = {v: k for k, v in lab_to_cat.items()}
 assert y_train_map == y_val_map == y_test_map == lab_to_cat
 
 # Define callbacks
-checkpointer = ModelCheckpoint(filepath=best_model, monitor='val_accuracy',
+checkpointer = ModelCheckpoint(filepath=best_model, monitor='val_recall',
                                mode="max", verbose=1, save_best_only=True, save_weights_only=True)
 
 tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir='logs/w2v/acp',

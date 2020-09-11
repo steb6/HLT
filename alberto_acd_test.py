@@ -7,7 +7,7 @@ import numpy
 from utilities.eng_to_ita import traduction
 from utilities.y_converter import y_label_to_category_map, y_category_to_onehot, onehot_to_category
 from transformers import AutoTokenizer, TFAutoModel
-from tqdm import tqdm
+import tqdm
 import os
 import pickle
 import numpy as np
@@ -23,7 +23,7 @@ text_max_length = 50
 target_max_length = 1
 
 # Where to load the model
-best_model = "experiments/alberto/acp/checkpoint"
+best_model = "experiments/alberto/acd/checkpoint"
 
 # Load data
 testing = load_dataset(test_file)
@@ -33,11 +33,11 @@ ids = testing.keys()
 testing = list(testing.values())
 x_test_base = [elem[1] for elem in testing]
 y_test_base = [elem[0] for elem in testing]
-print("Data rode")
+print("Data rode "+str(len(testing))+" lines")
 tok = AutoTokenizer.from_pretrained("m-polignano-uniba/bert_uncased_L-12_H-768_A-12_italian_alb3rt0")
 
 # Generate test embedded
-if not os.path.isfile("data/alberto/acp/test_embedded.pickle"):
+if not os.path.isfile("data/alberto/acd/test_embedded.pickle"):
 
     # Load model
     model = TFAutoModel.from_pretrained("m-polignano-uniba/bert_uncased_L-12_H-768_A-12_italian_alb3rt0")
@@ -47,7 +47,7 @@ if not os.path.isfile("data/alberto/acp/test_embedded.pickle"):
 
     def index_pad_embed(x, y):
         results = []
-        for couple, sent in tqdm(zip(x, y), total=len(x)):
+        for couple, sent in tqdm.tqdm(zip(x, y), total=len(x)):
             top = couple[0]
             rew = couple[1]
             ind_topic = [tok.vocab[token] for token in tok.tokenize(top)]
@@ -65,23 +65,23 @@ if not os.path.isfile("data/alberto/acp/test_embedded.pickle"):
 
 
     # Index y: one hot encoding
-    y_test_categories = [y_label_to_category_map[elem] for elem in y_test]
+    y_test_categories = [y_label_to_category_map[elem] for elem in y_test_base]
     y_test_one_hot = [y_category_to_onehot[elem] for elem in y_test_categories]
     y_category_to_label = {v: k for k, v in y_label_to_category_map.items()}
     print("y indexed")
 
     # Index pad embed
-    test_embedded = index_pad_embed(x_test, y_test_one_hot)
+    test_embedded = index_pad_embed(x_test_base, y_test_one_hot)
     test_embedded = [elem[1] for elem in test_embedded]
-    pickle.dump(test_embedded, open("data/alberto/acp/test_embedded.pickle", "wb"))
+    pickle.dump(test_embedded, open("data/alberto/acd/test_embedded.pickle", "wb"))
 else:
-    test_embedded = pickle.load(open("data/alberto/acp/test_embedded.pickle", "rb"))
+    test_embedded = pickle.load(open("data/alberto/acd/test_embedded.pickle", "rb"))
 
 # We don't need the y values
 input1 = np.array([elem[1][1] for elem in test_embedded])
 input2 = np.array([elem[1][0] for elem in test_embedded])
 test_embedded = [input2, input1]
-print(test_embedded)
+#print(test_embedded)
 
 
 # Control table
@@ -94,7 +94,7 @@ print(test_embedded)
 ########################################################################################################################
 # NN model #
 ########################################################################################################################
-classes = ['negative', 'positive', 'mixed']
+classes = ['positive', 'negative']
 
 print("Building NN Model...")
 nn_model = model(None,
@@ -121,6 +121,28 @@ nn_model.load_weights(best_model)
 results = nn_model.predict(test_embedded)
 print(results)
 
+# I predict all reviews w.r.t. each topic
+if not os.path.isfile("data/alberto/from_topic_to_embed.pickle"):
+    print("Creating topics embedded")
+    model = TFAutoModel.from_pretrained("m-polignano-uniba/bert_uncased_L-12_H-768_A-12_italian_alb3rt0")
+    topics_embedded = {}
+    for elem in ['servizi', 'valore', 'personale', 'posizione', 'comodo', 'pulizia', 'wifi']:
+        indexed = tok.vocab[elem]
+        indexed = [indexed]
+        model_input = numpy.array(indexed)
+        aux = model.predict(model_input)[1]
+        topics_embedded[elem] = aux
+    pickle.dump(topics_embedded, open("data/alberto/from_topic_to_embed.pickle", "wb"))
+else:
+    print("Loading topics embedded")
+    topics_embedded = pickle.load(open("data/alberto/from_topic_to_embed.pickle", "rb"))
+
+results = {}
+for topic in tqdm.tqdm(['servizi', 'valore', 'personale', 'posizione', 'comodo', 'pulizia', 'wifi']):
+    topic_repeated = numpy.array([topics_embedded[topic] for elem in test_embedded[1]])
+    results[topic] = nn_model.predict([topic_repeated, test_embedded[1]])
+
+
 ########################################################################################################################
 # Writing results for Absita Evaluation #
 ########################################################################################################################
@@ -134,61 +156,35 @@ columns = ['sentence_id', 'cleanliness_presence', 'cleanliness_positive', 'clean
            'wifi_presence', 'wifi_positive', 'wifi_negative', 'location_presence', 'location_positive',
            'location_negative', 'other_presence', 'other_positive', 'other_negative', 'sentence']
 
-# Create dictionary for ids with dictionary for columns
+# Create dictionary for ids of dictionary
+reviews = [elem[1] for elem in x_test_base]
 absita = {}
-for i in ids:
+for i, review in zip(ids, reviews):
     if i.isdigit():
         absita[i] = {key: 0 for key in columns[1:]}
+        absita[i]['sentence'] = review
 
 # Dictionary to get correct name
 traduction_inverted = {v: k for k, v in traduction.items()}
 
-# Transform x_test[0] in a list of possible topics
-# from number to italian topic
-topics = []
-for elem in x_test_base:
-    topics.append(elem[0])
-# from italian topic to english topic
-aux = topics
-topics = []
-for a in aux:
-    topics.append(traduction_inverted[a])
-
-# Change results from one-hot to categories:
-results_categories = onehot_to_category(results)
-
-# Change results_categories from categories to label
-y_category_to_label = {0: 'mixed', 1: 'positive', 2: 'negative'}
-results_label = []
-for result in results_categories:
-    results_label.append(y_category_to_label[result])
-
-# Fill the absita structure with results
-for i, result, topic in zip(ids, results_label, topics):
-    if not i.isdigit():
-        i = i[:-1]
-    absita[i][topic+'_presence'] = 1
-    if result == 'positive':
-        absita[i][topic+'_positive'] = 1
-    elif result == 'negative':
-        absita[i][topic+'_negative'] = 1
-    elif result == 'mixed':
-        absita[i][topic + '_negative'] = 1
-        absita[i][topic + '_positive'] = 1
-    else:
-        raise Exception()
+# Fill absita structure with results
+for topic in results.keys():
+    for n, i in enumerate(ids):
+        if not i.isdigit():
+            i = i[:-1]
+        if results[topic][n] > 0.5:
+            absita[i][traduction_inverted[topic]+'_presence'] = 1
 
 # Write into file
-with open('data/raw/alberto_acp_test_results.csv', 'w+') as f:
+with open('data/raw/alberto_acd_test_results.csv', 'w+') as f:
     for column in columns:
         f.write(column+';')
     f.write('\n')
-    for i in absita.keys():
-        # Write id
+    for n, i in enumerate(absita.keys()):
         f.write(i+';')
-        # Write all other columns' value
         for elem in absita[i].keys():
             f.write(str(absita[i][elem])+';')
+        f.write(reviews[n])
         f.write('\n')
 
-print("Created result in data/raw/alberto_acp_test_results.csv")
+print("Aspect category detection for alberto evaluated")
