@@ -260,7 +260,7 @@ categories of Italian Google News (WORLD, NATION, BUSINESS, TECHNOLOGY, ENTERTAI
         Simpler statistical approaches like LinearSVC gives us better results, arund 90\% for each class, thanks to lemmatization which reduces the vocabulary and has fewer elements to analyze.
         Nevertheless, the model is very good at understanding the sentiment towards a certain topic, and it can also understand if the sentiment towards a topic are mixed, and in different topics have different sentiments in the same review.
         The role of the context attention is crucial in the topic based sentiment analysis, because it can understand well which words express a certain sentiment towards a certain topic.
-        Also, alBERTo embeddings are much better than W2V one, in both test results and learning speed.
+        Also, alBERTo embeddings are much better than W2V one, in both test results and learning speed (alBERTo started overfitting after 20 epochs, w2v after 70 epochs)
         This could depend on the bigger embedding dimension (768 vs 300), the model used to obtain them (multiple transformers vs simple neural network) and the learning strategy (CBOW vs masked learning).
 
 \end{document}
