@@ -106,15 +106,18 @@
             \subsubsection{Word2Vec}
             Initially I made some experiments using a word embedding whose dimension was 128 (\url{http://www.italianlp.it/resources/italian-word-embeddings/}),
             but this lead to a slow and limited training, that couldn't overtake the accuracy score of 0.55.
-            So I moved to a more informative embedding which size was 300, and although the poor quality of most of the entries
+            So I moved to a more informative embedding whose size was 300, and although the poor quality of most of the entries
             (lot of words are typo or sequence of random characters), it gave good results.
             The Italian Word2Vec embeddings (\url{https://arxiv.org/pdf/2001.09332.pdf}) are obtained from a simple 2-level neural network with one-hot vector as input.
-            It has been trained with CBOW (continuous bag of words), the dataset was obtained using the information extracted from a dump of the Italian Wikipedia (dated 2019.04.01), from the main
-categories of Italian Google News (WORLD, NATION, BUSINESS, TECHNOLOGY, ENTERTAINMENT, SPORTS, SCIENCE, HEALTH), and has dimension of 2.4 GB .
+            It has been trained with CBOW (continuous bag of words) and negative sampling, the dataset was obtained using the information extracted from a
+            dump of the Italian Wikipedia (dated 2019.04.01), from the main categories of Italian Google News (WORLD, NATION, BUSINESS,
+            TECHNOLOGY, ENTERTAINMENT, SPORTS, SCIENCE, HEALTH), and has a dimension of 2.4 GB .
             Embeddings are given in a txt file, but after the first loading, they are formatted as dictionary and saved in a pickle file
             to speed up following loading.
-            I didn't do a lot of preprocessing of the reviews, since the embedding size is big (667564 words once removed the non-ascii ones) and it could cover the 85\% of the words, but looking better at the words that were indexed as $<unk>$, a lot of them were words with a capital letter.
-            So by setting all chars lowercase, without losing much information because no proper name was present in the dataset, and just by removing all \textbf{l'}, the coverage of ward embeddings increased to 95\%.
+            I didn't do a lot of preprocessing of the reviews, since the embedding size is big (667564 words once removed the non-ascii ones)
+            and it could cover the 85\% of the words, but looking better at the words that were indexed as $<unk>$, a lot of them were words with a capital letter.
+            So by setting all chars lowercase, without losing much information because no proper name was present in the dataset, and just by removing all \textbf{l'},
+            the coverage of word embeddings increased to 95\%.
             I selected the best model by looking at the highest validation score that I obtained.
             I also tried to select the best model looking at the highest validation accuracy, but the results where something like 8 percentage points less.
             \color{orange} Orange is for train, \color{blue} blue is for validation.\color{black}
@@ -137,14 +140,15 @@ categories of Italian Google News (WORLD, NATION, BUSINESS, TECHNOLOGY, ENTERTAI
             \end{figure}
 
             \subsubsection{AlBERTo}
-            AlBERTo is the Italian BERT version.
-            It has the same structure of BERT, the difference is in the learning strategy: BERT is trained with "masked learning" and "next following sentence", while alBERTo is trained only with "masked learning".
-            Because of this, alBERTo is suitable for sentiment analysis tasks, but not for more complex task like QA because it does not have idea of the flow of a dialogue.
-            The dataset used to train alBERTo is formed by 200 milion of tweets taken from TWITA, which is a big collection of tweets from 2012 since today.
-            I used Huggingface Transformers to download alBERTo model and the tokenizer, then I decided to generate an "alBERTed" version of the dataset,
+            AlBERTo is the Italian BERT .
+            It has the same structure of BERT, the difference is in the learning strategy: BERT is trained with "masked learning" and "next following sentence",
+            while alBERTo is trained only with "masked learning".
+            Because of this, alBERTo is suitable for sentiment analysis tasks, but not for more complex tasks like QA because it does not have idea of the flow of a dialogue.
+            The dataset used to train alBERTo is formed by 200 million of tweets taken from TWITA, which is a big collection of tweets from 2012 since today.
+            I used Huggingface Transformers to load the alBERTo model and the tokenizer, then I decided to generate an "alBERTed" version of the dataset,
             in this way I don't need to calculate the embeddings during the training because I have already computed them,
-            and this result in a faster training at the cost to spend time and space to generate and save the embedded dataset.
-            The tokenizer managed to index all the words.
+            and this result in a faster training at the cost of spending time and space once and for all to generate and save the embedded dataset.
+            The alBERTo tokenizer managed to index all the words.
             The dimension of these embeddings is 768, which is much larger than the Word2Vec ones, and also this lead to better results and faster learning.
             \color{orange} Orange is for train, \color{blue} blue is for validation.\color{black}
             \begin{figure}[!htb]
@@ -166,18 +170,19 @@ categories of Italian Google News (WORLD, NATION, BUSINESS, TECHNOLOGY, ENTERTAI
             \end{figure}
 
         \subsection{ACD}\label{subsec:s2}
-            Even if this model was not designed for topic-detection analysis, I experimented a way to understand its potential and limit.
-            So I proceed modifying the dataset in such a way to only detect if a topic is dealt in a review, and not in which way it is dealt.
+            Even if this model was not designed for topic-detection analysis, I wanted to test the potential of context-aware attention.
+            So I proceed modifying the dataset in such a way to only know if a topic is dealt in a review, and not in which way it is dealt.
             The idea is that the context-aware attention should learn which words refers in a general way to a specific topic.
-            So I tried various probability to add a negative sample (see ACD dataset description) since I obtain both class weights around 1.0, hoping that a balanced dataset could give better results.
             I also had to create negative samples for the ACD train and test set, since obviously I only had positive samples.
-            In order to do so, for each review $r$ and for each absent topic $t$ I added the sample $("negative", t, r)$ with a certain probability, that I set to value 0.2.
+            In order to do so, for each review r and for each absent topic t I added the sample ("negative", t, r) with a certain probability.
+            I tried various probability to add a negative sample for each review, till I obtained both class weights around 1.0, hoping that a balanced dataset could give better results.
+            The final probability I used is 0.2.
             The approach is the same as for the ACP task, but here the output layer has dimension 1 and so has a sigmoid activation instead of a softmax.
-            \color{orange} Orange is for train, \color{blue} blue is for validation.\color{black}
 
             \subsubsection{Word2Vec}
                 The input is a list of 2 numpy array: one that contains the indexed reviews and the other one that contains the indexed topics.
                 The output is a numpy array with values between [0, 1] where 0 stands for "topic not dealt in this review" and 1 stands for "topic dealt in this review.
+                \color{orange} Orange is for train, \color{blue} blue is for validation.\color{black}
                 \begin{figure}[!htb]
                 \begin{minipage}{0.48\textwidth}
                     \centering
@@ -218,12 +223,12 @@ categories of Italian Google News (WORLD, NATION, BUSINESS, TECHNOLOGY, ENTERTAI
             \end{figure}
 
     \section{Results}\label{sec:s5}
-        I had the official gold test set during training, but I didn't use it for model selection since that would have been incorrect.
+        I had the official gold test set during training, but I didn't use it for model selection since that would have been "tricky".
         So the model selection is based on the highest validation recall.
         I used the official evaluation\_absita script and the official gold test set for calculate the scores.
-        THe official evaluation script gives us also the macro results, but the competition is based on micro measures.
+        The official evaluation script gives us also the macro measures, but the competition was based on micro measures.
         \subsection{ACD}\label{subsec:s5}
-            The obvious and only way to predict the presence of topic in a sentence, is to try each topic for each sentence and collect the positive results only.
+            The obvious way to predict the presence of topic in a sentence, is to try each topic for each sentence and collect the positive results only.
                 %ACD RESULTS
                 \begin{table}[h!]
                     \begin{center}
@@ -239,6 +244,8 @@ categories of Italian Google News (WORLD, NATION, BUSINESS, TECHNOLOGY, ENTERTAI
                     \end{center}
                 \end{table}
         As we can see, the model is not good in this task.
+        Looking better at the results, I noticed that the model did not really understand what I was expecting,
+        instead the output depends only by the topic and not by the review.
             \subsection{ACP}\label{subsec:s6}
             This results could be calculated in two ways: using the output of the ACD task as input, or use true topic presence information.
                 In the first way, the results obviously is dependent from the result of the first task, in particular the score cannot be higher than what we obtain from the ACD task.
@@ -257,15 +264,18 @@ categories of Italian Google News (WORLD, NATION, BUSINESS, TECHNOLOGY, ENTERTAI
                     \end{center}
                 \end{table}
             We outperform the absita best model with both embeddings by a score of more than 8 percentage points, which is a huge improvement.
-            The alBERTo embedding improves the results obtained by the W2V one by more than 4 percentage points, and not only has better generalization capabilities, but it learns faster.
+            The alBERTo embedding improves the results obtained by the W2V one by more than 4 percentage points, and not only it has better generalization capabilities, but it learns way faster.
 
     \section{Conclusion}\label{sec:s6}
-        Deep-Learning approaches with context-attention has difficulty to understand the topics dealt in reviews.
+        This model has difficulty to understand which topic is dealt in the review.
         This could be due to a small dataset, which contains few element for each topic class.
-        Simpler statistical approaches like LinearSVC gives us better results, arund 90\% for each class, thanks to lemmatization which reduces the vocabulary and has fewer elements to analyze.
-        Nevertheless, the model is very good at understanding the sentiment towards a certain topic, and it can also understand if the sentiment towards a topic are mixed, and in different topics have different sentiments in the same review.
+        Simpler statistical approaches like LinearSVC gives us better results, around 90\% for each class, thanks to lemmatization which reduces the vocabulary and has fewer elements to analyze.
+        Maybe some modification in both model and data could help the model to effectively learns the ACD task.
+        Nevertheless, the model is very good at understanding the sentiment expressed toward a certain topic, and it can also understand
+        if the sentiment is mixed, and if different topics have different sentiments in the same review.
         The role of the context attention is crucial in the topic based sentiment analysis, because it can understand well which words express a certain sentiment towards a certain topic.
         Also, alBERTo embeddings are much better than W2V one, in both test results and learning speed (alBERTo started overfitting after 20 epochs, w2v after 70 epochs)
-        This could depend on the bigger embedding dimension (768 vs 300), the model used to obtain them (multiple transformers vs simple neural network) and the learning strategy (CBOW vs masked learning).
+        This could depend on the bigger embedding dimension (768 vs 300), the model used to obtain them
+        (multiple transformers vs simple neural network) and the learning strategy (CBOW vs masked learning).
 
 \end{document}
