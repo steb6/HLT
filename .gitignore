@@ -1,11 +1,9 @@
 venv
-experiments/acd/model*
-experiments/acp/model*
-embeddings/raw/wiki*
-embeddings/embeddings*
-data/raw/absita*
-data/absita*
 .idea
 utilities/__pycache__
 alberto
 logs
+data/raw/alberto*
+data/raw/w2v*
+experiments
+embeddings
