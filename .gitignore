@@ -3,7 +3,5 @@ venv
 utilities/__pycache__
 alberto
 logs
-data/raw/alberto*
-data/raw/w2v*
 experiments
 embeddings
