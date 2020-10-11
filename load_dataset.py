@@ -1,5 +1,5 @@
 import os
-# from transformers import AutoTokenizer, TFAutoModel
+from transformers import AutoConfig
 from utilities.dataset_loader import load_train_test_files
 from sklearn.model_selection import train_test_split
 from sklearn.metrics.pairwise import cosine_similarity
@@ -18,8 +18,8 @@ def load_dataset(embedded=False, text_max_length=50, just_detection=False):
         print("alBERTed dataset not found, loading dataset and alBERTo model...")
 
         # Load model
-        model = []#TFAutoModel.from_pretrained("m-polignano-uniba/bert_uncased_L-12_H-768_A-12_italian_alb3rt0")
-        tok = []#AutoTokenizer.from_pretrained("m-polignano-uniba/bert_uncased_L-12_H-768_A-12_italian_alb3rt0")
+        model = AutoConfig.from_pretrained("m-polignano-uniba/bert_uncased_L-12_H-768_A-12_italian_alb3rt0")
+        tok = AutoConfig.from_pretrained("m-polignano-uniba/bert_uncased_L-12_H-768_A-12_italian_alb3rt0")
 
         # Load dataset
         training = load_train_test_files('data/train.tsv')
@@ -128,24 +128,18 @@ def load_dataset(embedded=False, text_max_length=50, just_detection=False):
         test_embedded = test_embedded[:int(len(test_embedded)/2)]
         # Transform data to be model input
         x_train = [elem[1] for elem in train_embedded]
-        print("x extracted")
         y_train = [elem[0] for elem in train_embedded]
-        print("y dataset embedded")
         del train_embedded
-        print("train embedded removed")
         x_train = [np.array([elem[0] for elem in x_train]), np.array([elem[1] for elem in x_train])]
-        print("train ready")
 
         x_val = [elem[1] for elem in val_embedded]
-        print("x extracted")
         y_val = [elem[0] for elem in val_embedded]
-        print("y extracted")
         del val_embedded
-        print("Deleted")
         x_val = [np.array([elem[0] for elem in x_val]), np.array([elem[1] for elem in x_val])]
-        print("validation ready")
         x_test = []
         y_test = []
+        y_train = np.array([elem[0] for elem in y_train])
+        y_val = np.array([elem[0] for elem in y_val])
     else:
         x_train = [elem[1] for elem in train_embedded]
         x_train = [np.array([elem[0] for elem in x_train]), np.array([elem[1] for elem in x_train])]
