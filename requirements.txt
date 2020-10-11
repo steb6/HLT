@@ -90,7 +90,7 @@ tensorboard==2.3.0
 tensorboard-plugin-wit==1.7.0
 tensorflow==2.3.0
 tensorflow-estimator==2.3.0
-tensorflow-gpu==1.15.0
+tensorflow-gpu==1.15.4
 termcolor==1.1.0
 tokenizers==0.8.1rc1
 torch==1.6.0
