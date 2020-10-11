@@ -1,4 +1,4 @@
-from transformers import AutoTokenizer, TFAutoModel
+# from transformers import AutoTokenizer, TFAutoModel
 import numpy as np
 from kutilities.helpers.data_preparation import labels_to_categories, categories_to_onehot, get_labels_to_categories_map
 from sklearn.metrics.pairwise import cosine_similarity
@@ -23,7 +23,7 @@ best_model = "experiments/alberto/acp/checkpoint"
 history_file = "experiments/alberto/acp/model_history.pickle"
 
 # Load dataset
-x_train, y_train, x_val, y_val, x_test, y_test = load_dataset(embedded=True, text_max_length=text_max_length)
+x_train, y_train, x_val, y_val, x_test, y_test = load_dataset(embedded=True, text_max_length=text_max_length, just_detection=False)
 print("Dataset BERTed")
 
 ########################################################################################################################

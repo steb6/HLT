@@ -1,5 +1,5 @@
 import os
-from transformers import AutoTokenizer, TFAutoModel
+# from transformers import AutoTokenizer, TFAutoModel
 from utilities.dataset_loader import load_train_test_files
 from sklearn.model_selection import train_test_split
 from sklearn.metrics.pairwise import cosine_similarity
@@ -12,14 +12,14 @@ from utilities.negative_samples_adder import add_negative_samples
 
 def load_dataset(embedded=False, text_max_length=50, just_detection=False):
 
-    TASK = 'acd' if just_detection else 'acd'
+    TASK = 'acd' if just_detection else 'acp'
 
     if not os.path.isfile("data/alberto/"+TASK+"/test_embedded.pickle"):
         print("alBERTed dataset not found, loading dataset and alBERTo model...")
 
         # Load model
-        model = TFAutoModel.from_pretrained("m-polignano-uniba/bert_uncased_L-12_H-768_A-12_italian_alb3rt0")
-        tok = AutoTokenizer.from_pretrained("m-polignano-uniba/bert_uncased_L-12_H-768_A-12_italian_alb3rt0")
+        model = []#TFAutoModel.from_pretrained("m-polignano-uniba/bert_uncased_L-12_H-768_A-12_italian_alb3rt0")
+        tok = []#AutoTokenizer.from_pretrained("m-polignano-uniba/bert_uncased_L-12_H-768_A-12_italian_alb3rt0")
 
         # Load dataset
         training = load_train_test_files('data/train.tsv')
