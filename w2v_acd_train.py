@@ -1,6 +1,6 @@
 from utilities.embeddings_loader import load_embeddings
 from utilities.matrix_wv_generator import matrix_wv_generator
-from utilities.dataset_loader import load_dataset
+from utilities.dataset_loader import load_train_test_files
 from utilities.dataset_indexxer import index_x, index_y
 from utilities.model import model
 from utilities.negative_samples_adder import add_negative_samples
@@ -45,8 +45,8 @@ pickle.dump(word_indices, open(best_model_word_indices, 'wb'))
 print("Embedding matrix and word indices generated")
 
 # Read dataset
-training = load_dataset(data_file)
-testing = load_dataset(test_file)
+training = load_train_test_files(data_file)
+testing = load_train_test_files(test_file)
 
 # Set all positive
 for key in training.keys():

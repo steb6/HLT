@@ -1,6 +1,6 @@
 from utilities.embeddings_loader import load_embeddings
 from utilities.matrix_wv_generator import matrix_wv_generator
-from utilities.dataset_loader import load_dataset
+from utilities.dataset_loader import load_train_test_files
 from utilities.dataset_indexxer import index_x
 from utilities.model import model
 from kutilities.helpers.data_preparation import get_class_weights2
@@ -47,8 +47,8 @@ pickle.dump(word_indices, open(best_model_word_indices, 'wb'))
 print("Embedding matrix and word indices generated")
 
 # Read dataset
-training = load_dataset(data_file)
-testing = load_dataset(test_file)
+training = load_train_test_files(data_file)
+testing = load_train_test_files(test_file)
 
 # Remove ids converting dict into list
 training = list(training.values())
