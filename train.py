@@ -4,23 +4,41 @@ from kutilities.helpers.data_preparation import get_class_weights2
 from utilities.model import model
 import tensorflow as tf
 from load_dataset import load_dataset
+from utilities.matrix_wv_generator import matrix_wv_generator
+from utilities.embeddings_loader import load_embeddings
 
 # Which task
 TASK = "acd"
 assert TASK == "acp" or TASK == "acd"
 print("Executing " + TASK + " task")
 
+# Which embeddings
+EMB = "w2v"
+assert EMB == "alberto" or EMB == "w2v"
+print("Using "+EMB+" embeddings")
+
 # Input dimensions
 text_max_length = 50
 target_max_length = 1
 
 # Where to save things
-best_model = "experiments/alberto/"+TASK+"/checkpoint"
-history_file = "experiments/alberto/"+TASK+"/model_history.pickle"
+best_model = "experiments/"+EMB+"/"+TASK+"/checkpoint"
+history_file = "experiments/"+EMB+"/"+TASK+"/model_history.pickle"
+
+# If w2v, load embeddings
+embeddings = None
+word_indices = None
+if EMB == "w2v":
+    embeddings, word_indices = matrix_wv_generator(load_embeddings(file="embeddings", dimension=300))
+    pickle.dump(word_indices, open("experiments/w2v/"+TASK+"/model_word_indices.pickle", 'wb'))
+    print("Embedding matrix and word indices generated")
 
 # Load dataset
-x_train, y_train, x_val, y_val, x_test, y_test = load_dataset(embedded=True, text_max_length=text_max_length,
-                                                              just_detection=(TASK == "acd"))
+x_train, y_train, x_val, y_val, x_test, y_test = load_dataset(text_max_length=text_max_length,
+                                                              target_max_length=1,
+                                                              just_detection=(TASK == "acd"),
+                                                              embedded=(EMB == "alberto"),
+                                                              word_indices=word_indices)
 print("Dataset BERTed")
 
 ########################################################################################################################
@@ -32,7 +50,7 @@ else:
     classes = ['positive', 'negative']
 
 print("Building NN Model...")
-nn_model = model(None,
+nn_model = model(embeddings,
                  text_max_length,
                  target_max_length,
                  len(classes),
@@ -66,7 +84,7 @@ cat_to_class_mapping = {v: k for k, v in lab_to_cat.items()}
 checkpointer = ModelCheckpoint(filepath=best_model, monitor='val_recall',
                                mode="max", verbose=1, save_best_only=True, save_weights_only=True)
 
-tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir='./logs/alberto/'+TASK, histogram_freq=1)
+tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir="./logs/"+EMB+"/"+TASK, histogram_freq=1)
 
 _callbacks = [tensorboard_callback, checkpointer]
 

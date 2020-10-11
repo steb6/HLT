@@ -83,17 +83,17 @@ x_test = index_x(data=x_test, target_max_length=target_max_length, text_max_leng
 print("x indexed")
 
 # Index y: one hot encoding
-y_train_categories = labels_to_categories(y_train)
-y_train_one_hot = categories_to_onehot(y_train_categories)
-y_train_map = get_labels_to_categories_map(y_train)
+#y_train_categories = labels_to_categories(y_train)
+#y_train_one_hot = categories_to_onehot(y_train_categories)
+#y_train_map = get_labels_to_categories_map(y_train)
 
-y_val_categories = labels_to_categories(y_val)
-y_val_one_hot = categories_to_onehot(y_val_categories)
-y_val_map = get_labels_to_categories_map(y_val)
+#y_val_categories = labels_to_categories(y_val)
+#y_val_one_hot = categories_to_onehot(y_val_categories)
+#y_val_map = get_labels_to_categories_map(y_val)
 
-y_test_categories = labels_to_categories(y_test)
-y_test_one_hot = categories_to_onehot(y_test_categories)
-y_test_map = get_labels_to_categories_map(y_test)
+#y_test_categories = labels_to_categories(y_test)
+#y_test_one_hot = categories_to_onehot(y_test_categories)
+#y_test_map = get_labels_to_categories_map(y_test)
 
 # Assert values are categorized in the same way
 assert y_train_map == y_val_map == y_test_map == y_label_to_category_map
