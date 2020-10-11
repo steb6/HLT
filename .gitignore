@@ -6,3 +6,4 @@ logs
 experiments
 embeddings
 data/alberto
+__pycache__

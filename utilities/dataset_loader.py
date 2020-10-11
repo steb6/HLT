@@ -14,7 +14,7 @@ def clean_text(text):
     return text
 
 
-def load_dataset(filename):
+def load_train_test_files(filename):
 
     data = {}
     print("Parsing file:", filename)
