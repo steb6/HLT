@@ -1,6 +1,6 @@
 from utilities.embeddings_loader import load_embeddings
 from utilities.matrix_wv_generator import matrix_wv_generator
-from utilities.dataset_loader import load_dataset
+from utilities.dataset_loader import load_train_test_files
 from utilities.dataset_indexxer import index_x
 from utilities.model import model
 from kutilities.helpers.data_preparation import get_class_weights2
@@ -47,8 +47,8 @@ pickle.dump(word_indices, open(best_model_word_indices, 'wb'))
 print("Embedding matrix and word indices generated")
 
 # Read dataset
-training = load_dataset(data_file)
-testing = load_dataset(test_file)
+training = load_train_test_files(data_file)
+testing = load_train_test_files(test_file)
 
 # Remove ids converting dict into list
 training = list(training.values())
@@ -83,17 +83,17 @@ x_test = index_x(data=x_test, target_max_length=target_max_length, text_max_leng
 print("x indexed")
 
 # Index y: one hot encoding
-y_train_categories = labels_to_categories(y_train)
-y_train_one_hot = categories_to_onehot(y_train_categories)
-y_train_map = get_labels_to_categories_map(y_train)
+#y_train_categories = labels_to_categories(y_train)
+#y_train_one_hot = categories_to_onehot(y_train_categories)
+#y_train_map = get_labels_to_categories_map(y_train)
 
-y_val_categories = labels_to_categories(y_val)
-y_val_one_hot = categories_to_onehot(y_val_categories)
-y_val_map = get_labels_to_categories_map(y_val)
+#y_val_categories = labels_to_categories(y_val)
+#y_val_one_hot = categories_to_onehot(y_val_categories)
+#y_val_map = get_labels_to_categories_map(y_val)
 
-y_test_categories = labels_to_categories(y_test)
-y_test_one_hot = categories_to_onehot(y_test_categories)
-y_test_map = get_labels_to_categories_map(y_test)
+#y_test_categories = labels_to_categories(y_test)
+#y_test_one_hot = categories_to_onehot(y_test_categories)
+#y_test_map = get_labels_to_categories_map(y_test)
 
 # Assert values are categorized in the same way
 assert y_train_map == y_val_map == y_test_map == y_label_to_category_map

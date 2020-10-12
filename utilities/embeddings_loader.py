@@ -3,8 +3,8 @@ import pickle
 import numpy
 
 
-def load_embeddings(embeddings_file, embeddings_dim):
-    file = 'embeddings/{}{}.pickle'.format(embeddings_file, embeddings_dim)
+def load_embeddings(file="embeddings", dimension=300):
+    file = 'embeddings/{}{}.pickle'.format(file, dimension)
     if os.path.exists(file):
         # Pickle file exists
         print("Embeddings pickle found!")
@@ -12,7 +12,7 @@ def load_embeddings(embeddings_file, embeddings_dim):
             return pickle.load(f)
     else:
         print("Embeddings pickle not found!")
-        file = 'embeddings/{}{}.txt'.format(embeddings_file, embeddings_dim)
+        file = 'embeddings/{}{}.txt'.format(file, 300)
         if not os.path.exists(file):
             raise FileNotFoundError
         # Pickle file does not exist
@@ -23,7 +23,7 @@ def load_embeddings(embeddings_file, embeddings_dim):
             # Get right values
             values = line.split()
             word = values[0]
-            coefs = numpy.asarray(values[-embeddings_dim:], dtype='float32')
+            coefs = numpy.asarray(values[-300:], dtype='float32')
             # Check if it is an ascii (it removes useless embeddings)
             try:
                 word.encode('ascii')
@@ -33,7 +33,7 @@ def load_embeddings(embeddings_file, embeddings_dim):
             embeddings_dict[word] = coefs
         f.close()
         # Save embeddings_dict as pickle file
-        with open(os.path.join('embeddings', '{}{}.pickle'.format(embeddings_file, embeddings_dim)), 'wb') as pick_file:
+        with open(os.path.join('embeddings', '{}{}.pickle'.format(file, 300)), 'wb') as pick_file:
             pickle.dump(embeddings_dict, pick_file)
 
-        return load_embeddings(embeddings_file, embeddings_dim)
+        return load_embeddings(file, 300)

@@ -1,5 +1,5 @@
 import os
-from transformers import AutoTokenizer, TFAutoModel
+from transformers import AutoConfig
 from utilities.dataset_loader import load_train_test_files
 from sklearn.model_selection import train_test_split
 from sklearn.metrics.pairwise import cosine_similarity
@@ -8,18 +8,78 @@ from tqdm import tqdm
 import pickle
 from kutilities.helpers.data_preparation import labels_to_categories, categories_to_onehot, get_labels_to_categories_map
 from utilities.negative_samples_adder import add_negative_samples
+from utilities.dataset_indexxer import index_x, index_y
+from sklearn.preprocessing import LabelEncoder
 
 
-def load_dataset(embedded=False, text_max_length=50, just_detection=False):
+def load_dataset(text_max_length=50, target_max_length=1, just_detection=False, embedded=False, word_indices=None):
+    ####################################################################################################################
+    # W2v part #
+    ####################################################################################################################
 
-    TASK = 'acd' if just_detection else 'acd'
+    if not embedded:
 
-    if not os.path.isfile("data/alberto/"+TASK+"/test_embedded.pickle"):
+        training = load_train_test_files('data/train.tsv')
+        testing = load_train_test_files('data/test.tsv')
+
+        if just_detection:
+            # Set all positive
+            for key in training.keys():
+                value = list(training[key])
+                value[0] = 'positive'
+                training[key] = tuple(value)
+
+            for key in testing.keys():
+                value = list(testing[key])
+                value[0] = 'positive'
+                testing[key] = tuple(value)
+
+            # Add negative samples
+            categories = list(set([elem[1][0] for elem in list(training.values())]))
+            training = add_negative_samples(training, categories, 0.2)
+            testing = add_negative_samples(testing, categories, 0.2)
+
+        training = list(training.values())
+        x_train = [elem[1] for elem in training]
+        y_train = [elem[0] for elem in training]
+        x_train, x_val, y_train, y_val = train_test_split(x_train, y_train, test_size=0.3, stratify=y_train,
+                                                          random_state=42)
+        testing = list(testing.values())
+        x_test = [elem[1] for elem in testing]
+        y_test = [elem[0] for elem in testing]
+        x_train = index_x(data=x_train, target_max_length=target_max_length, text_max_length=text_max_length,
+                          word_indices=word_indices)
+        x_val = index_x(data=x_val, target_max_length=target_max_length, text_max_length=text_max_length,
+                        word_indices=word_indices)
+        x_test = index_x(data=x_test, target_max_length=target_max_length, text_max_length=text_max_length,
+                         word_indices=word_indices)
+
+        if just_detection:
+            y_train = index_y(y_train, {'positive': 1, 'negative': 0})
+            y_val = index_y(y_val, {'positive': 1, 'negative': 0})
+            y_test = index_y(y_test, {'positive': 1, 'negative': 0})
+        else:
+            encoder = LabelEncoder()
+            encoder.fit(y_train)
+
+            y_train = categories_to_onehot(encoder.transform(y_train))
+            y_val = categories_to_onehot(encoder.transform(y_val))
+            y_test = categories_to_onehot(encoder.transform(y_test))
+
+        return x_train, y_train, x_val, y_val, x_test, y_test
+
+    TASK = 'acd' if just_detection else 'acp'
+
+    ####################################################################################################################
+    # alBERTo part #
+    ####################################################################################################################
+
+    if not os.path.isfile("data/alberto/" + TASK + "/test_embedded.pickle"):
         print("alBERTed dataset not found, loading dataset and alBERTo model...")
 
         # Load model
-        model = TFAutoModel.from_pretrained("m-polignano-uniba/bert_uncased_L-12_H-768_A-12_italian_alb3rt0")
-        tok = AutoTokenizer.from_pretrained("m-polignano-uniba/bert_uncased_L-12_H-768_A-12_italian_alb3rt0")
+        model = AutoConfig.from_pretrained("m-polignano-uniba/bert_uncased_L-12_H-768_A-12_italian_alb3rt0")
+        tok = AutoConfig.from_pretrained("m-polignano-uniba/bert_uncased_L-12_H-768_A-12_italian_alb3rt0")
 
         # Load dataset
         training = load_train_test_files('data/train.tsv')
@@ -54,7 +114,8 @@ def load_dataset(embedded=False, text_max_length=50, just_detection=False):
         y_test = [elem[0] for elem in testing]
 
         # Divide training set into training and validation
-        x_train, x_val, y_train, y_val = train_test_split(x_train, y_train, test_size=0.3, stratify=y_train, random_state=42)
+        x_train, x_val, y_train, y_val = train_test_split(x_train, y_train, test_size=0.3, stratify=y_train,
+                                                          random_state=42)
 
         # test
         print(cosine_similarity(model.predict(np.array([tok.vocab["cane"]]))[1],
@@ -106,46 +167,42 @@ def load_dataset(embedded=False, text_max_length=50, just_detection=False):
         assert y_train_map == y_val_map == y_test_map
         lab_to_cat = y_train_map
 
-        pickle.dump(train_embedded, open("data/alberto/"+TASK+"/train_embedded.pickle", "wb"))
-        pickle.dump(val_embedded, open("data/alberto/"+TASK+"/val_embedded.pickle", "wb"))
-        pickle.dump(test_embedded, open("data/alberto/"+TASK+"/test_embedded.pickle", "wb"))
-        pickle.dump(lab_to_cat, open("data/alberto/"+TASK+"/lab_to_cat.pickle", "wb"))
-        pickle.dump(y_train_categories, open("data/alberto/"+TASK+"/y_train_categories.pickle", "wb")) # for class weights
+        pickle.dump(train_embedded, open("data/alberto/" + TASK + "/train_embedded.pickle", "wb"))
+        pickle.dump(val_embedded, open("data/alberto/" + TASK + "/val_embedded.pickle", "wb"))
+        pickle.dump(test_embedded, open("data/alberto/" + TASK + "/test_embedded.pickle", "wb"))
+        pickle.dump(lab_to_cat, open("data/alberto/" + TASK + "/lab_to_cat.pickle", "wb"))
+        pickle.dump(y_train_categories,
+                    open("data/alberto/" + TASK + "/y_train_categories.pickle", "wb"))  # for class weights
 
-    else: # we have the embeddings ready,w I just need to load them ###################################################
+    else:  # we have the embeddings ready,w I just need to load them ###################################################
 
         print("Pickle files for embeddings found!")
-        train_embedded = pickle.load(open("data/alberto/"+TASK+"/train_embedded.pickle", "rb"))
-        val_embedded = pickle.load(open("data/alberto/"+TASK+"/val_embedded.pickle", "rb"))
-        test_embedded = pickle.load(open("data/alberto/"+TASK+"/test_embedded.pickle", "rb"))
-        lab_to_cat = pickle.load(open("data/alberto/"+TASK+"/lab_to_cat.pickle", "rb"))
-        y_train_categories = pickle.load(open("data/alberto/"+TASK+"/y_train_categories.pickle", "rb")) # for class weights
+        train_embedded = pickle.load(open("data/alberto/" + TASK + "/train_embedded.pickle", "rb"))
+        val_embedded = pickle.load(open("data/alberto/" + TASK + "/val_embedded.pickle", "rb"))
+        test_embedded = pickle.load(open("data/alberto/" + TASK + "/test_embedded.pickle", "rb"))
+        lab_to_cat = pickle.load(open("data/alberto/" + TASK + "/lab_to_cat.pickle", "rb"))
+        y_train_categories = pickle.load(
+            open("data/alberto/" + TASK + "/y_train_categories.pickle", "rb"))  # for class weights
 
     # Transform data to be model input
     if just_detection:
-        train_embedded = train_embedded[:int(len(train_embedded)/2)]
-        val_embedded = val_embedded[:int(len(val_embedded)/2)]
-        test_embedded = test_embedded[:int(len(test_embedded)/2)]
+        train_embedded = train_embedded[:int(len(train_embedded) / 2)]
+        val_embedded = val_embedded[:int(len(val_embedded) / 2)]
+        test_embedded = test_embedded[:int(len(test_embedded) / 2)]
         # Transform data to be model input
         x_train = [elem[1] for elem in train_embedded]
-        print("x extracted")
         y_train = [elem[0] for elem in train_embedded]
-        print("y dataset embedded")
         del train_embedded
-        print("train embedded removed")
         x_train = [np.array([elem[0] for elem in x_train]), np.array([elem[1] for elem in x_train])]
-        print("train ready")
 
         x_val = [elem[1] for elem in val_embedded]
-        print("x extracted")
         y_val = [elem[0] for elem in val_embedded]
-        print("y extracted")
         del val_embedded
-        print("Deleted")
         x_val = [np.array([elem[0] for elem in x_val]), np.array([elem[1] for elem in x_val])]
-        print("validation ready")
         x_test = []
         y_test = []
+        y_train = np.array([elem[0] for elem in y_train])
+        y_val = np.array([elem[0] for elem in y_val])
     else:
         x_train = [elem[1] for elem in train_embedded]
         x_train = [np.array([elem[0] for elem in x_train]), np.array([elem[1] for elem in x_train])]
