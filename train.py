@@ -6,9 +6,10 @@ import tensorflow as tf
 from load_dataset import load_dataset
 from utilities.matrix_wv_generator import matrix_wv_generator
 from utilities.embeddings_loader import load_embeddings
+from load_dataset import load_w2v_acd_dataset, load_w2v_acp_dataset
 
 # Which task
-TASK = "acd"
+TASK = "acp"
 assert TASK == "acp" or TASK == "acd"
 print("Executing " + TASK + " task")
 
@@ -34,11 +35,18 @@ if EMB == "w2v":
     print("Embedding matrix and word indices generated")
 
 # Load dataset
-x_train, y_train, x_val, y_val, x_test, y_test = load_dataset(text_max_length=text_max_length,
-                                                              target_max_length=1,
-                                                              just_detection=(TASK == "acd"),
-                                                              embedded=(EMB == "alberto"),
-                                                              word_indices=word_indices)
+if TASK == "acd" and EMB == "w2v":
+    x_train, y_train, x_val, y_val, _, _ = load_w2v_acd_dataset(text_max_length=text_max_length, target_max_length=1,
+                                                                task="acd", word_indices=word_indices)
+elif TASK == "acp" and EMB == "w2v":
+    x_train, y_train, x_val, y_val, _, _ = load_w2v_acp_dataset(text_max_length=text_max_length, target_max_length=1,
+                                                                task="acp", word_indices=word_indices)
+
+if EMB == "alberto":
+    x_train, y_train, x_val, y_val, x_test, y_test = load_dataset(text_max_length=text_max_length, target_max_length=1,
+                                                                  just_detection=(TASK == "acd"),
+                                                                  embedded=(EMB == "alberto"),
+                                                                  word_indices=word_indices)
 print("Dataset BERTed")
 
 ########################################################################################################################
@@ -47,13 +55,15 @@ print("Dataset BERTed")
 if TASK == "acp":
     classes = ['negative', 'mixed', 'positive']
 else:
-    classes = ['positive', 'negative']
+    # classes = ['positive', 'negative']
+    classes = ['cleanliness', 'comfort', "amenities", "staff", "value", "wifi", "location", "other"]
 
 print("Building NN Model...")
 nn_model = model(embeddings,
                  text_max_length,
                  target_max_length,
                  len(classes),
+                 TASK,
                  noise=0.2,
                  activity_l2=0.001,
                  drop_text_rnn_U=0.2,
@@ -71,16 +81,6 @@ print(nn_model.summary())
 ########################################################################################################################
 # Callbacks #
 ########################################################################################################################
-
-# Retrieve class name
-if TASK == "acp":
-    lab_to_cat = {'mixed': 0, 'negative': 1, 'positive': 2}
-else:
-    lab_to_cat = {'positive': 1, 'negative': 0}
-
-cat_to_class_mapping = {v: k for k, v in lab_to_cat.items()}
-
-
 checkpointer = ModelCheckpoint(filepath=best_model, monitor='val_recall',
                                mode="max", verbose=1, save_best_only=True, save_weights_only=True)
 
@@ -91,23 +91,30 @@ _callbacks = [tensorboard_callback, checkpointer]
 ########################################################################################################################
 # Class weights and fitting #
 ########################################################################################################################
+class_weights = None
 if TASK == "acp":
     # Need to get index from one hot vector representation
+    lab_to_cat = {'negative': 0, 'mixed': 1, 'positive': 2}
+    cat_to_class_mapping = {v: k for k, v in lab_to_cat.items()}
     class_weights = get_class_weights2([list(elem).index(1) for elem in y_train], smooth_factor=0.1)
-else:
+    print("Class weights:", {cat_to_class_mapping[c]: w for c, w in class_weights.items()})
+    class_weights = {i: class_weights[w] for i, w in enumerate(class_weights.keys())}
+# else:
     # We already have categories
-    class_weights = get_class_weights2(y_train, smooth_factor=0.1)
+    # class_weights = get_class_weights2(y_train, smooth_factor=0.1)
 
-print("Class weights:", {cat_to_class_mapping[c]: w for c, w in class_weights.items()})
+# print("Class weights:", {cat_to_class_mapping[c]: w for c, w in class_weights.items()})
 # Convert into number
-class_weights = {i: class_weights[w] for i, w in enumerate(class_weights.keys())}
+# class_weights = {i: class_weights[w] for i, w in enumerate(class_weights.keys())}
 
 history = nn_model.fit(x_train, y_train,
                        validation_data=(x_val, y_val),
-                       epochs=100, batch_size=64, class_weight=class_weights,
+                       epochs=100,
+                       batch_size=64,
+                       class_weight=class_weights,
                        callbacks=_callbacks)
 
 pickle.dump(history.history, open(history_file, "wb"))
 
-loss, acc = nn_model.evaluate(x_test, y_test, verbose=2)
-print("Test set: accuracy: {:5.2f}%".format(100*acc))
+# loss, acc = nn_model.evaluate(x_test, y_test, verbose=2)
+# print("Test set: accuracy: {:5.2f}%".format(100*acc))

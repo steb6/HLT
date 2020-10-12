@@ -7,7 +7,7 @@ from keras.engine import Model
 from keras.optimizers import Adam
 
 
-def model(wv, tweet_max_length, aspect_max_length, classes, **kwargs):
+def model(wv, tweet_max_length, aspect_max_length, classes, task, **kwargs):
     ######################################################
     # HyperParameters
     ######################################################
@@ -29,6 +29,7 @@ def model(wv, tweet_max_length, aspect_max_length, classes, **kwargs):
     #shared_RNN = Bidirectional(LSTM(75, return_sequences=True, consume_less='cpu', dropout_U=drop_text_rnn_U,
                                     #W_regularizer=l2(0)))
     shared_RNN = Bidirectional(LSTM(75, dropout=drop_text_rnn_U, return_sequences=True))
+
 
     # GET the right model, if wv is None, then we already have the embeddings (BERT)
 
@@ -59,6 +60,7 @@ def model(wv, tweet_max_length, aspect_max_length, classes, **kwargs):
         h_aspects = MeanOverTime()(h_aspects)
         h_aspects = RepeatVector(tweet_max_length)(h_aspects)
     else:
+        # We give already the embedding
         input_tweet = Input(shape=(tweet_max_length, 768,), dtype='float32')
         input_aspect = Input(shape=(aspect_max_length, 768,), dtype='float32')
         h_tweets = shared_RNN(input_tweet)
@@ -70,7 +72,10 @@ def model(wv, tweet_max_length, aspect_max_length, classes, **kwargs):
         h_aspects = RepeatVector(tweet_max_length)(h_aspects)
 
     # Merge of Aspect + Tweet
-    representation = concatenate([h_tweets, h_aspects])
+    if task == "acp":
+        representation = concatenate([h_tweets, h_aspects])
+    else:
+        representation = h_tweets
 
     # apply attention over the hidden outputs of the RNN's
     representation = AttentionWithContext()(representation)
@@ -88,13 +93,25 @@ def model(wv, tweet_max_length, aspect_max_length, classes, **kwargs):
     # Probabilities
     ######################################################
 
-    probabilities = Dense(1 if classes == 2 else classes,
-                          activation="sigmoid" if classes == 2 else "softmax",
-                          activity_regularizer=l2(activity_l2))(representation)
+    if task == "acp":
+        probabilities = Dense(1 if classes == 2 else classes,
+                              activation="sigmoid" if classes == 2 else "softmax",
+                              activity_regularizer=l2(activity_l2))(representation)
+        final_model = Model(inputs=[input_aspect, input_tweet], outputs=probabilities)
+    else:
+        # acd case
+        probabilities = Dense(classes,
+                              activation="sigmoid",
+                              activity_regularizer=l2(activity_l2))(representation)
+        final_model = Model(inputs=input_tweet, outputs=probabilities)
 
-    final_model = Model(inputs=[input_aspect, input_tweet], outputs=probabilities)
-
-    final_model.compile(optimizer=Adam(clipnorm=clipnorm, lr=lr),
-                        loss="binary_crossentropy" if classes == 2 else "categorical_crossentropy",
-                        metrics=['accuracy', tf.keras.metrics.Recall()])
+    if task == "acp":
+        final_model.compile(optimizer=Adam(clipnorm=clipnorm, lr=lr),
+                            loss="binary_crossentropy" if classes == 2 else "categorical_crossentropy",
+                            metrics=['accuracy', tf.keras.metrics.Recall()])
+    else:
+        # acd case
+        final_model.compile(optimizer=Adam(clipnorm=clipnorm, lr=lr),
+                            loss="binary_crossentropy",
+                            metrics=['accuracy', tf.keras.metrics.Recall()])
     return final_model
