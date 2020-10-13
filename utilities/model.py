@@ -77,15 +77,17 @@ def model(wv, tweet_max_length, aspect_max_length, classes, task, **kwargs):
         representation = h_tweets
 
     # apply attention over the hidden outputs of the RNN's
-    if task == "acp":
-        representation = AttentionWithContext()(representation)
-        representation = Dropout(drop_rep)(representation)
-    else:
-        representation = Attention()(representation)
+    representation = AttentionWithContext()(representation)
+    representation = Dropout(drop_rep)(representation)
+    # if task == "acp":
+    #    representation = AttentionWithContext()(representation)
+    #    representation = Dropout(drop_rep)(representation)
+    # else:
+    #    representation = Attention()(representation)
 
     # Default is linear, should try maxout
     # if final_type == "maxout":
-        # representation = MaxoutDense(final_size)(representation)
+    #   representation = MaxoutDense(final_size)(representation)
     # else:
     representation = Dense(final_size, activation=final_type)(
             representation)

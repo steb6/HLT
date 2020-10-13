@@ -71,42 +71,15 @@ nn_model = model(embeddings,
 
 print(nn_model.summary())
 
-########################################################################################################################
-# Callbacks #
-########################################################################################################################
-# Erase files from older training
-shutil.rmtree("experiments/"+EMB+"/"+TASK)
-os.makedirs("experiments/"+EMB+"/"+TASK)
-shutil.rmtree("logs/"+EMB+"/"+TASK)
-os.makedirs("logs/"+EMB+"/"+TASK)
+nn_model.load_weights(best_model)
 
-checkpointer = ModelCheckpoint(filepath=best_model, monitor='val_recall',
-                               mode="max", verbose=1, save_best_only=True, save_weights_only=True)
+results = nn_model.predict(x_val)
+text_results = []
+for line in results:
+    topics = []
+    for i, elem in enumerate(line):
+        if elem > 0.5:
+            topics.append(classes[i])
+    text_results.append(topics)
 
-tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir="./logs/"+EMB+"/"+TASK, histogram_freq=1)
-
-_callbacks = [tensorboard_callback, checkpointer]
-
-########################################################################################################################
-# Class weights and fitting #
-########################################################################################################################
-class_weights = None
-if TASK == "acp":
-    # Need to get index from one hot vector representation
-    lab_to_cat = {'negative': 0, 'mixed': 1, 'positive': 2}
-    cat_to_class_mapping = {v: k for k, v in lab_to_cat.items()}
-    class_weights = get_class_weights2([list(elem).index(1) for elem in y_train], smooth_factor=0.1)
-    print("Class weights:", {cat_to_class_mapping[c]: w for c, w in class_weights.items()})
-    class_weights = {i: class_weights[w] for i, w in enumerate(class_weights.keys())}
-
-history = nn_model.fit(x_train, y_train,
-                       validation_data=(x_val, y_val),
-                       epochs=50,
-                       batch_size=64,
-                       class_weight=class_weights,
-                       callbacks=_callbacks)
-
-pickle.dump(history.history, open(history_file, "wb"))
-
-# loss, acc = nn_model.evaluate(x_test, y_test, verbose=2)
-# print("Test set: accuracy: {:5.2f}%".format(100*acc))
+print("HOPE")
