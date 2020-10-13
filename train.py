@@ -3,18 +3,19 @@ from keras.callbacks import ModelCheckpoint
 from kutilities.helpers.data_preparation import get_class_weights2
 from utilities.model import model
 import tensorflow as tf
-from load_dataset import load_dataset
+from load_dataset import load_alberto_dataset
 from utilities.matrix_wv_generator import matrix_wv_generator
 from utilities.embeddings_loader import load_embeddings
-from load_dataset import load_w2v_acd_dataset, load_w2v_acp_dataset
+from load_dataset import load_w2v_dataset
+from load_dataset import load_dataset
 
 # Which task
-TASK = "acp"
+TASK = "acd"
 assert TASK == "acp" or TASK == "acd"
 print("Executing " + TASK + " task")
 
 # Which embeddings
-EMB = "w2v"
+EMB = "alberto"
 assert EMB == "alberto" or EMB == "w2v"
 print("Using "+EMB+" embeddings")
 
@@ -34,19 +35,33 @@ if EMB == "w2v":
     pickle.dump(word_indices, open("experiments/w2v/"+TASK+"/model_word_indices.pickle", 'wb'))
     print("Embedding matrix and word indices generated")
 
-# Load dataset
-if TASK == "acd" and EMB == "w2v":
-    x_train, y_train, x_val, y_val, _, _ = load_w2v_acd_dataset(text_max_length=text_max_length, target_max_length=1,
-                                                                task="acd", word_indices=word_indices)
-elif TASK == "acp" and EMB == "w2v":
-    x_train, y_train, x_val, y_val, _, _ = load_w2v_acp_dataset(text_max_length=text_max_length, target_max_length=1,
-                                                                task="acp", word_indices=word_indices)
+# Load dataset ########################################################################################################
+x_train, y_train, x_val, y_val, _, _ = load_dataset(filename="data/raw/train.csv",
+                                                    text_max_length=50, target_max_length=1,
+                                                    task=TASK, emb=EMB, word_indices=word_indices,
+                                                    split_validation=True)
+# if EMB is "w2v":
+#     x_train, y_train, x_val, y_val, _, _ = load_w2v_dataset(filename="data/raw/train.csv",
+#                                                            text_max_length=50, target_max_length=1,
+#                                                            task=TASK, word_indices=word_indices,
+#                                                            split_validation=True)
+# else:
+#    x_train, y_train, x_val, y_val, _, _ = load_alberto_dataset(filename="data/raw/train.csv",
+#                                                                text_max_length=50, target_max_length=1,
+#                                                                task=TASK, word_indices=word_indices,
+#                                                                split_validation=True)
+# if TASK == "acd" and EMB == "w2v":
+#    x_train, y_train, x_val, y_val, _, _ = load_w2v_acd_dataset(text_max_length=text_max_length, target_max_length=1,
+#                                                                task="acd", word_indices=word_indices)
+# elif TASK == "acp" and EMB == "w2v":
+#    x_train, y_train, x_val, y_val, _, _ = load_w2v_acp_dataset(text_max_length=text_max_length, target_max_length=1,
+#                                                                task="acp", word_indices=word_indices)
 
-if EMB == "alberto":
-    x_train, y_train, x_val, y_val, x_test, y_test = load_dataset(text_max_length=text_max_length, target_max_length=1,
-                                                                  just_detection=(TASK == "acd"),
-                                                                  embedded=(EMB == "alberto"),
-                                                                  word_indices=word_indices)
+# if EMB == "alberto":
+#    x_train, y_train, x_val, y_val, x_test, y_test = load_dataset(text_max_length=text_max_length, target_max_length=1,
+#                                                                  just_detection=(TASK == "acd"),
+#                                                                  embedded=(EMB == "alberto"),
+#                                                                  word_indices=word_indices)
 print("Dataset BERTed")
 
 ########################################################################################################################

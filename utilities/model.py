@@ -2,7 +2,7 @@ from keras.layers import Dropout, Dense, Bidirectional, LSTM, Embedding, Gaussia
 import tensorflow as tf
 from keras.engine import Input
 from keras.regularizers import l2
-from kutilities.layers import AttentionWithContext, MeanOverTime
+from kutilities.layers import AttentionWithContext, MeanOverTime, Attention
 from keras.engine import Model
 from keras.optimizers import Adam
 
@@ -26,13 +26,12 @@ def model(wv, tweet_max_length, aspect_max_length, classes, task, **kwargs):
     lr = kwargs.get("lr", 0.001)
 
     #####################################################
-    #shared_RNN = Bidirectional(LSTM(75, return_sequences=True, consume_less='cpu', dropout_U=drop_text_rnn_U,
+    # shared_RNN = Bidirectional(LSTM(75, return_sequences=True, consume_less='cpu', dropout_U=drop_text_rnn_U,
                                     #W_regularizer=l2(0)))
-    shared_RNN = Bidirectional(LSTM(75, dropout=drop_text_rnn_U, return_sequences=True))
-
+    shared_RNN = Bidirectional(LSTM(75 if task == "acp" else 300,
+                                    dropout=drop_text_rnn_U, return_sequences=True))
 
     # GET the right model, if wv is None, then we already have the embeddings (BERT)
-
     if wv is not None:
         input_tweet = Input(shape=[tweet_max_length], dtype='int32')
         input_aspect = Input(shape=[aspect_max_length], dtype='int32')
@@ -78,13 +77,16 @@ def model(wv, tweet_max_length, aspect_max_length, classes, task, **kwargs):
         representation = h_tweets
 
     # apply attention over the hidden outputs of the RNN's
-    representation = AttentionWithContext()(representation)
-    representation = Dropout(drop_rep)(representation)
+    if task == "acp":
+        representation = AttentionWithContext()(representation)
+        representation = Dropout(drop_rep)(representation)
+    else:
+        representation = Attention()(representation)
 
     # Default is linear, should try maxout
-    #if final_type == "maxout":
-        #representation = MaxoutDense(final_size)(representation)
-    #else:
+    # if final_type == "maxout":
+        # representation = MaxoutDense(final_size)(representation)
+    # else:
     representation = Dense(final_size, activation=final_type)(
             representation)
     representation = Dropout(drop_final)(representation)
