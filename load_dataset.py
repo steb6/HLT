@@ -22,8 +22,14 @@ traduction = {'cleanliness': 'pulizia',
               'mixed': 'mixed'}
 
 
-def load_dataset(filename="data/raw/train.csv", text_max_length=50, target_max_length=1, task="acd", emb="alberto",
-                 word_indices=None, split_validation=True):
+def load_dataset(which="train", text_max_length=50, target_max_length=1, task="acd", emb="alberto",
+                 word_indices=None):
+    # Test or data
+    if which is "train":
+        filename = "data/raw/train.csv"
+    else:
+        filename = "data/raw/test.csv"
+
     # First 2 change only if we use alberto, the last one changes only if we do acd
     tok = None
     model = None
@@ -107,8 +113,8 @@ def load_dataset(filename="data/raw/train.csv", text_max_length=50, target_max_l
                 polarities.append(0 if polarity == 'negative' else 1 if polarity == 'mixed' else 2)
                 topics.append([word_indices[traduction[topic]]])
     else:  # alberto
-        if os.path.isfile("data/alberto/" + task + "/reviews_embedded.pickle"):
-            x_train = pickle.load(open("data/alberto/" + task + "/reviews_embedded.pickle", "rb"))
+        if os.path.isfile("data/alberto/" + task + "/" + which + "_reviews_embedded.pickle"):
+            x_train = pickle.load(open("data/alberto/" + task + "/" + which + "_reviews_embedded.pickle", "rb"))
         else:
             x_train = numpy.zeros((len(reviews), text_max_length, 768), dtype=float)
             print("Embedding reviews...")
@@ -120,15 +126,15 @@ def load_dataset(filename="data/raw/train.csv", text_max_length=50, target_max_l
                     ind_review = ind_review[:text_max_length]
                 emb_review = model.predict(ind_review)[1]
                 x_train[i] = emb_review
-            pickle.dump(x_train, open("data/alberto/" + task + "/reviews_embedded.pickle", "wb"))
+            pickle.dump(x_train, open("data/alberto/" + task + "/" + which + "_reviews_embedded.pickle", "wb"))
         y_train = np.array(topics)
 
         # If polarity detection, we need to change the y from topics to sentiments and append topics to x
         if task == "acp":
-            if os.path.isfile("data/alberto/" + task + "/topics_embedded.pickle") \
-                    and os.path.isfile("data/alberto/" + task + "/polarities_embedded.pickle"):
-                topics = pickle.load(open("data/alberto/" + task + "/topics_embedded.pickle", "rb"))
-                polarities = pickle.load(open("data/alberto/" + task + "/polarities_embedded.pickle", "rb"))
+            if os.path.isfile("data/alberto/" + task + "/" + which + "_topics_embedded.pickle") \
+                    and os.path.isfile("data/alberto/" + task + "/" + which + "_polarities_embedded.pickle"):
+                topics = pickle.load(open("data/alberto/" + task + "/" + which + "_topics_embedded.pickle", "rb"))
+                polarities = pickle.load(open("data/alberto/" + task + "/" + which + "_polarities_embedded.pickle", "rb"))
             else:
                 topics = numpy.zeros((len(reviews), target_max_length, 768), dtype=float)
                 polarities = []
@@ -137,8 +143,8 @@ def load_dataset(filename="data/raw/train.csv", text_max_length=50, target_max_l
                     topic, polarity = sentiment.split('_')
                     polarities.append(0 if polarity == 'negative' else 1 if polarity == 'mixed' else 2)
                     topics[i] = model.predict([tok.vocab[traduction[topic]]])[1]
-                pickle.dump(topics, open("data/alberto/" + task + "/topics_embedded.pickle", "wb"))
-                pickle.dump(polarities, open("data/alberto/" + task + "/polarities_embedded.pickle", "wb"))
+                pickle.dump(topics, open("data/alberto/" + task + "/" + which + "_topics_embedded.pickle", "wb"))
+                pickle.dump(polarities, open("data/alberto/" + task + "/" + which + "_polarities_embedded.pickle", "wb"))
 
 ########################################################################################################################
 # Format data in the right way #
@@ -152,13 +158,16 @@ def load_dataset(filename="data/raw/train.csv", text_max_length=50, target_max_l
         y_train = polarities
 
     # We can stratify over acp, but not over acd because the combination of classes are few
-    x_train, x_val, y_train, y_val = train_test_split(x_train, y_train, test_size=0.3,
-                                                      stratify=None if task is "acd" else y_train,
-                                                      random_state=42)
+    if which is "train":
+        x_train, x_val, y_train, y_val = train_test_split(x_train, y_train, test_size=0.3,
+                                                          stratify=None if task is "acd" else y_train,
+                                                          random_state=42)
+    else:
+        x_val = y_val = None
 
     # If we have to do detection, we finished
     if task is "acd":
-        return x_train, y_train, x_val, y_val, [], []
+        return x_train, y_train, x_val, y_val
 
     # If we have to do polarities, we need to change the input format
     final_topics = []
@@ -169,12 +178,13 @@ def load_dataset(filename="data/raw/train.csv", text_max_length=50, target_max_l
     x_train = [np.array(final_topics), np.array(final_reviews)]
     y_train = np.array(categories_to_onehot(y_train))
 
-    final_topics = []
-    final_reviews = []
-    for elem in x_val:
-        final_topics.append(elem[0])
-        final_reviews.append(elem[1])
-    x_val = [np.array(final_topics), np.array(final_reviews)]
-    y_val = np.array(categories_to_onehot(y_val))
+    if x_val is not None and y_val is not None:
+        final_topics = []
+        final_reviews = []
+        for elem in x_val:
+            final_topics.append(elem[0])
+            final_reviews.append(elem[1])
+        x_val = [np.array(final_topics), np.array(final_reviews)]
+        y_val = np.array(categories_to_onehot(y_val))
 
-    return x_train, y_train, x_val, y_val, [], []
+    return x_train, y_train, x_val, y_val

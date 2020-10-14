@@ -8,9 +8,10 @@ from utilities.embeddings_loader import load_embeddings
 from load_dataset import load_dataset
 import shutil
 import os
+import numpy as np
 
 # Which task
-TASK = "acd"
+TASK = "acp"
 assert TASK == "acp" or TASK == "acd"
 print("Executing " + TASK + " task")
 
@@ -36,8 +37,8 @@ if EMB == "w2v":
     print("Embedding matrix and word indices generated")
 
 # Load dataset ########################################################################################################
-x_train, y_train, x_val, y_val, = load_dataset(which="train", text_max_length=50, target_max_length=1,
-                                               task=TASK, emb=EMB, word_indices=word_indices)
+x_test, y_test, _, _ = load_dataset(which="test", text_max_length=50, target_max_length=1,
+                                    task=TASK, emb=EMB, word_indices=word_indices)
 
 print("Dataset BERTed")
 
@@ -69,42 +70,45 @@ nn_model = model(embeddings,
 
 print(nn_model.summary())
 
-########################################################################################################################
-# Callbacks #
-########################################################################################################################
-# Erase files from older training
-shutil.rmtree("experiments/"+EMB+"/"+TASK)
-os.makedirs("experiments/"+EMB+"/"+TASK)
-shutil.rmtree("logs/"+EMB+"/"+TASK)
-os.makedirs("logs/"+EMB+"/"+TASK)
+nn_model.load_weights(best_model)
 
-checkpointer = ModelCheckpoint(filepath=best_model, monitor='val_recall',
-                               mode="max", verbose=1, save_best_only=True, save_weights_only=True)
+results = nn_model.predict(x_test)
 
-tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir="./logs/"+EMB+"/"+TASK, histogram_freq=1)
+# Transform results in polarities
+polarities = []
+for result in results:
+    result = list(result)
+    polarity = result.index(max(result))
+    polarities.append("negative" if polarity is 0 else "mixed" if polarity is 1 else "positive")
 
-_callbacks = [tensorboard_callback, checkpointer]
 
-########################################################################################################################
-# Class weights and fitting #
-########################################################################################################################
-class_weights = None
-if TASK == "acp":
-    # Need to get index from one hot vector representation
-    lab_to_cat = {'negative': 0, 'mixed': 1, 'positive': 2}
-    cat_to_class_mapping = {v: k for k, v in lab_to_cat.items()}
-    class_weights = get_class_weights2([list(elem).index(1) for elem in y_train], smooth_factor=0.1)
-    print("Class weights:", {cat_to_class_mapping[c]: w for c, w in class_weights.items()})
-    class_weights = {i: class_weights[w] for i, w in enumerate(class_weights.keys())}
+# Load reviews id
+with open("data/raw/test.csv", "r", encoding='utf-8') as f:
+    lines = f.readlines()
 
-history = nn_model.fit(x_train, y_train,
-                       validation_data=(x_val, y_val),
-                       epochs=50,
-                       batch_size=64,
-                       class_weight=class_weights,
-                       callbacks=_callbacks)
+columns = lines[0]
 
-pickle.dump(history.history, open(history_file, "wb"))
+ids_repeated = []
+topics = []
+classes = ['cleanliness', 'comfort', "amenities", "staff", "value", "wifi", "location", "other"]
+for line in lines[1:]:
+    iid = line.split(";")[0]
+    line = line.split(";")[1:]
+    for i in range(8):
+        if int(line[i*3]) is 1:
+            ids_repeated.append(iid)
+            topics.append(classes[i])
 
-# loss, acc = nn_model.evaluate(x_test, y_test, verbose=2)
-# print("Test set: accuracy: {:5.2f}%".format(100*acc))
+# TODO fino a qua sopra ok, abbiamo topics, ids_repeated e polarities, basta scrivere tutto nel file di risultato
+
+with open("data/" + TASK + "_" + EMB + "_results.csv", "w") as f:
+    f.write(columns)
+    for i, line in zip(ids, results_rounded):
+        f.write(i)
+        f.write(";")
+        for elem in line:
+            f.write(str(elem))
+            f.write(";")
+        f.write("\n")
+
+print("HOPE")

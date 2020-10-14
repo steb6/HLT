@@ -8,6 +8,7 @@ from utilities.embeddings_loader import load_embeddings
 from load_dataset import load_dataset
 import shutil
 import os
+import numpy as np
 
 # Which task
 TASK = "acd"
@@ -15,7 +16,7 @@ assert TASK == "acp" or TASK == "acd"
 print("Executing " + TASK + " task")
 
 # Which embeddings
-EMB = "alberto"
+EMB = "w2v"
 assert EMB == "alberto" or EMB == "w2v"
 print("Using "+EMB+" embeddings")
 
@@ -36,10 +37,8 @@ if EMB == "w2v":
     print("Embedding matrix and word indices generated")
 
 # Load dataset ########################################################################################################
-x_train, y_train, x_val, y_val, _, _ = load_dataset(filename="data/raw/train.csv",
-                                                    text_max_length=50, target_max_length=1,
-                                                    task=TASK, emb=EMB, word_indices=word_indices,
-                                                    split_validation=True)
+x_test, y_test, _, _ = load_dataset(which="test", text_max_length=50, target_max_length=1,
+                                    task=TASK, emb=EMB, word_indices=word_indices)
 
 print("Dataset BERTed")
 
@@ -73,7 +72,9 @@ print(nn_model.summary())
 
 nn_model.load_weights(best_model)
 
-results = nn_model.predict(x_val)
+results = nn_model.predict(x_test)
+
+# Just to visualize TODO remove
 text_results = []
 for line in results:
     topics = []
@@ -81,5 +82,29 @@ for line in results:
         if elem > 0.5:
             topics.append(classes[i])
     text_results.append(topics)
+
+# Create results structure
+results_rounded = np.zeros((len(results), 24), dtype=int)
+for i, line in enumerate(results):
+    for j, elem in enumerate(line):
+        if elem > 0.5:
+            results_rounded[i][j*3] = 1
+
+
+# Load reviews id
+with open("data/raw/test.csv", "r", encoding='utf-8') as f:
+    lines = f.readlines()
+columns = lines[0]
+ids = [line.split(";")[0] for line in lines[1:]]  # skip the header
+
+with open("data/" + TASK + "_" + EMB + "_results.csv", "w") as f:
+    f.write(columns)
+    for i, line in zip(ids, results_rounded):
+        f.write(i)
+        f.write(";")
+        for elem in line:
+            f.write(str(elem))
+            f.write(";")
+        f.write("\n")
 
 print("HOPE")
