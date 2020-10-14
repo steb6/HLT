@@ -20,8 +20,9 @@ text_max_length = 50
 target_max_length = 1
 
 # Where to save things
-best_model = "checkpoints/"+EMB+"/"+TASK+"/checkpoint"
-history_file = "checkpoints/"+EMB+"/"+TASK+"/model_history.pickle"
+folder_best_model = "checkpoints/"+EMB+"/"+TASK
+file_best_model = folder_best_model+"/checkpoint"
+# history_file = "checkpoints/"+EMB+"/"+TASK+"/model_history.pickle"
 
 # If w2v, load embeddings
 embeddings = None
@@ -63,7 +64,7 @@ nn_model = model(embeddings,
                  clipnorm=.1)
 
 # print(nn_model.summary())
-nn_model.load_weights(best_model)
+nn_model.load_weights(file_best_model)
 print("Model loaded!")
 results = nn_model.predict(x_test)
 

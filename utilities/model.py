@@ -97,25 +97,14 @@ def model(wv, tweet_max_length, aspect_max_length, classes, task, **kwargs):
     # Probabilities
     ######################################################
 
-    if task == "acp":
-        probabilities = Dense(1 if classes == 2 else classes,
-                              activation="sigmoid" if classes == 2 else "softmax",
-                              activity_regularizer=l2(activity_l2))(representation)
-        final_model = Model(inputs=[input_aspect, input_tweet], outputs=probabilities)
-    else:
-        # acd case
-        probabilities = Dense(classes,
-                              activation="sigmoid",
-                              activity_regularizer=l2(activity_l2))(representation)
-        final_model = Model(inputs=input_tweet, outputs=probabilities)
+    probabilities = Dense(classes, activation="softmax" if task is "acp" else "sigmoid",
+                          activity_regularizer=l2(activity_l2))(representation)
 
-    if task == "acp":
-        final_model.compile(optimizer=Adam(clipnorm=clipnorm, lr=lr),
-                            loss="binary_crossentropy" if classes == 2 else "categorical_crossentropy",
-                            metrics=['accuracy', tf.keras.metrics.Recall()])
-    else:
-        # acd case
-        final_model.compile(optimizer=Adam(clipnorm=clipnorm, lr=lr),
-                            loss="binary_crossentropy",
-                            metrics=['accuracy', tf.keras.metrics.Recall()])
+    final_model = Model(inputs=[input_aspect, input_tweet] if task is "acp" else input_tweet,
+                        outputs=probabilities)
+
+    final_model.compile(optimizer=Adam(clipnorm=clipnorm, lr=lr),
+                        loss="categorical_crossentropy" if task is "acp" else "binary_crossentropy",
+                        metrics=['accuracy', tf.keras.metrics.Recall()])
+
     return final_model

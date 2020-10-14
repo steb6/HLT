@@ -24,14 +24,17 @@ text_max_length = 50
 target_max_length = 1
 
 # Where to save things
-best_model = "checkpoints/"+EMB+"/"+TASK+"/checkpoint"
-history_file = "checkpoints/"+EMB+"/"+TASK+"/model_history.pickle"
+logs_folder = "logs/"+EMB+"/"+TASK
+folder_best_model = "checkpoints/"+EMB+"/"+TASK
+file_best_model = folder_best_model+"/checkpoint"
+# history_file = "checkpoints/"+EMB+"/"+TASK+"/model_history.pickle"
 
 # If w2v, load embeddings
 embeddings = None
 word_indices = None
 if EMB == "w2v":
     embeddings, word_indices = matrix_wv_generator(load_embeddings(file="embeddings", dimension=300))
+    # pickle word indices
     print("Embedding matrix and word indices generated")
 
 # Load dataset ########################################################################################################
@@ -72,12 +75,15 @@ print(nn_model.summary())
 # Callbacks #
 ########################################################################################################################
 # Erase files from older training
-shutil.rmtree("checkpoints/"+EMB+"/"+TASK)
-os.makedirs("checkpoints/"+EMB+"/"+TASK)
-shutil.rmtree("logs/"+EMB+"/"+TASK)
-os.makedirs("logs/"+EMB+"/"+TASK)
+if os.path.isdir(folder_best_model):
+    shutil.rmtree(folder_best_model)
+os.makedirs(folder_best_model)
 
-checkpointer = ModelCheckpoint(filepath=best_model, monitor='val_recall',
+if os.path.isdir(logs_folder):
+    shutil.rmtree(logs_folder)
+os.makedirs(logs_folder)
+
+checkpointer = ModelCheckpoint(filepath=file_best_model, monitor='val_recall',
                                mode="max", verbose=1, save_best_only=True, save_weights_only=True)
 
 tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir="./logs/"+EMB+"/"+TASK, histogram_freq=1)
@@ -103,7 +109,7 @@ history = nn_model.fit(x_train, y_train,
                        class_weight=class_weights,
                        callbacks=_callbacks)
 
-pickle.dump(history.history, open(history_file, "wb"))
+# pickle.dump(history.history, open(history_file, "wb"))
 
 # loss, acc = nn_model.evaluate(x_test, y_test, verbose=2)
 # print("Test set: accuracy: {:5.2f}%".format(100*acc))
