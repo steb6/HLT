@@ -1,8 +1,8 @@
-from keras.layers import Dropout, Dense, Bidirectional, LSTM, Embedding, GaussianNoise, concatenate, RepeatVector#, MaxoutDense
+from keras.layers import Dropout, Dense, Bidirectional, LSTM, Embedding, GaussianNoise, concatenate, RepeatVector
 import tensorflow as tf
 from keras.engine import Input
 from keras.regularizers import l2
-from kutilities.layers import AttentionWithContext, MeanOverTime, Attention
+from kutilities.layers import AttentionWithContext, MeanOverTime
 from keras.engine import Model
 from keras.optimizers import Adam
 
@@ -27,7 +27,7 @@ def model(wv, tweet_max_length, aspect_max_length, classes, task, **kwargs):
 
     #####################################################
     # shared_RNN = Bidirectional(LSTM(75, return_sequences=True, consume_less='cpu', dropout_U=drop_text_rnn_U,
-                                    #W_regularizer=l2(0)))
+    # W_regularizer=l2(0)))
     shared_RNN = Bidirectional(LSTM(75 if task == "acp" else 300,
                                     dropout=drop_text_rnn_U, return_sequences=True))
 

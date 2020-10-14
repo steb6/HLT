@@ -134,7 +134,8 @@ def load_dataset(which="train", text_max_length=50, target_max_length=1, task="a
             if os.path.isfile("data/alberto/" + task + "/" + which + "_topics_embedded.pickle") \
                     and os.path.isfile("data/alberto/" + task + "/" + which + "_polarities_embedded.pickle"):
                 topics = pickle.load(open("data/alberto/" + task + "/" + which + "_topics_embedded.pickle", "rb"))
-                polarities = pickle.load(open("data/alberto/" + task + "/" + which + "_polarities_embedded.pickle", "rb"))
+                polarities = pickle.load(
+                    open("data/alberto/" + task + "/" + which + "_polarities_embedded.pickle", "rb"))
             else:
                 topics = numpy.zeros((len(reviews), target_max_length, 768), dtype=float)
                 polarities = []
@@ -144,7 +145,8 @@ def load_dataset(which="train", text_max_length=50, target_max_length=1, task="a
                     polarities.append(0 if polarity == 'negative' else 1 if polarity == 'mixed' else 2)
                     topics[i] = model.predict([tok.vocab[traduction[topic]]])[1]
                 pickle.dump(topics, open("data/alberto/" + task + "/" + which + "_topics_embedded.pickle", "wb"))
-                pickle.dump(polarities, open("data/alberto/" + task + "/" + which + "_polarities_embedded.pickle", "wb"))
+                pickle.dump(polarities, open(
+                    "data/alberto/" + task + "/" + which + "_polarities_embedded.pickle", "wb"))
 
 ########################################################################################################################
 # Format data in the right way #

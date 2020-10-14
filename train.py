@@ -5,7 +5,7 @@ from utilities.model import model
 import tensorflow as tf
 from utilities.matrix_wv_generator import matrix_wv_generator
 from utilities.embeddings_loader import load_embeddings
-from load_dataset import load_dataset
+from utilities.load_dataset import load_dataset
 import shutil
 import os
 
@@ -24,15 +24,14 @@ text_max_length = 50
 target_max_length = 1
 
 # Where to save things
-best_model = "experiments/"+EMB+"/"+TASK+"/checkpoint"
-history_file = "experiments/"+EMB+"/"+TASK+"/model_history.pickle"
+best_model = "checkpoints/"+EMB+"/"+TASK+"/checkpoint"
+history_file = "checkpoints/"+EMB+"/"+TASK+"/model_history.pickle"
 
 # If w2v, load embeddings
 embeddings = None
 word_indices = None
 if EMB == "w2v":
     embeddings, word_indices = matrix_wv_generator(load_embeddings(file="embeddings", dimension=300))
-    pickle.dump(word_indices, open("experiments/w2v/"+TASK+"/model_word_indices.pickle", 'wb'))
     print("Embedding matrix and word indices generated")
 
 # Load dataset ########################################################################################################
@@ -73,8 +72,8 @@ print(nn_model.summary())
 # Callbacks #
 ########################################################################################################################
 # Erase files from older training
-shutil.rmtree("experiments/"+EMB+"/"+TASK)
-os.makedirs("experiments/"+EMB+"/"+TASK)
+shutil.rmtree("checkpoints/"+EMB+"/"+TASK)
+os.makedirs("checkpoints/"+EMB+"/"+TASK)
 shutil.rmtree("logs/"+EMB+"/"+TASK)
 os.makedirs("logs/"+EMB+"/"+TASK)
 

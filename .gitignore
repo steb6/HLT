@@ -3,7 +3,7 @@ venv
 utilities/__pycache__
 alberto
 logs
-experiments
+checkpoints
 embeddings
 data/alberto
 __pycache__

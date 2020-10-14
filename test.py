@@ -1,17 +1,17 @@
-import pickle
+import os
 from utilities.model import model
 from utilities.matrix_wv_generator import matrix_wv_generator
 from utilities.embeddings_loader import load_embeddings
-from load_dataset import load_dataset
+from utilities.load_dataset import load_dataset
 import numpy as np
 
 # Which task
-TASK = "acp"
+TASK = "acd"
 assert TASK == "acp" or TASK == "acd"
 print("Executing " + TASK + " task")
 
 # Which embeddings
-EMB = "w2v"
+EMB = "alberto"
 assert EMB == "alberto" or EMB == "w2v"
 print("Using "+EMB+" embeddings")
 
@@ -20,15 +20,14 @@ text_max_length = 50
 target_max_length = 1
 
 # Where to save things
-best_model = "experiments/"+EMB+"/"+TASK+"/checkpoint"
-history_file = "experiments/"+EMB+"/"+TASK+"/model_history.pickle"
+best_model = "checkpoints/"+EMB+"/"+TASK+"/checkpoint"
+history_file = "checkpoints/"+EMB+"/"+TASK+"/model_history.pickle"
 
 # If w2v, load embeddings
 embeddings = None
 word_indices = None
 if EMB == "w2v":
     embeddings, word_indices = matrix_wv_generator(load_embeddings(file="embeddings", dimension=300))
-    pickle.dump(word_indices, open("experiments/w2v/"+TASK+"/model_word_indices.pickle", 'wb'))
     print("Embedding matrix and word indices generated")
 
 # Load dataset ########################################################################################################
@@ -107,8 +106,8 @@ else:
                 else:
                     results_rounded[i][elem + 1] = 1
                     results_rounded[i][elem + 2] = 1
-
-with open("data/" + TASK + "_" + EMB + "_results.csv", "w") as f:
+output_file = "data/" + TASK + "_" + EMB + "_results.csv"
+with open(output_file, "w") as f:
     f.write(lines[0])
     for i, line in zip(ids, results_rounded):
         f.write(i)
@@ -118,4 +117,5 @@ with open("data/" + TASK + "_" + EMB + "_results.csv", "w") as f:
             f.write(";")
         f.write("\n")
 
-print("Results are available in: " + "data/" + TASK + "_" + EMB + "_results.csv")
+print("Results are available in: " + output_file)
+os.system("python data/raw/evaluation_absita.py " + output_file + " data/raw/test.csv")
