@@ -16,7 +16,7 @@ assert TASK == "acp" or TASK == "acd"
 print("Executing " + TASK + " task")
 
 # Which embeddings
-EMB = "w2v"
+EMB = "alberto"
 assert EMB == "alberto" or EMB == "w2v"
 print("Using "+EMB+" embeddings")
 
@@ -79,36 +79,39 @@ polarities = []
 for result in results:
     result = list(result)
     polarity = result.index(max(result))
-    polarities.append("negative" if polarity is 0 else "mixed" if polarity is 1 else "positive")
+    polarities.append(polarity)
 
 
 # Load reviews id
 with open("data/raw/test.csv", "r", encoding='utf-8') as f:
     lines = f.readlines()
 
-columns = lines[0]
+idxs = []
+results_rounded = np.zeros((len(lines), 24), dtype=int)
+for i, line in enumerate(lines[1:]):
+    values = line.split(";")
+    idxs.append(values[0])
+    columns = values[1:]
+    topic = []
+    for elem in range(0, 24, 3):
+        if int(columns[elem]) == 1:
+            results_rounded[i][elem] = 1
+            sentiment = polarities.pop(0)
+            if sentiment is 2:
+                results_rounded[i][elem + 1] = 1
+            elif sentiment is 0:
+                results_rounded[i][elem + 2] = 1
+            else:
+                results_rounded[i][elem + 1] = 1
+                results_rounded[i][elem + 2] = 1
 
-ids_repeated = []
-topics = []
-classes = ['cleanliness', 'comfort', "amenities", "staff", "value", "wifi", "location", "other"]
-for line in lines[1:]:
-    iid = line.split(";")[0]
-    line = line.split(";")[1:]
-    for i in range(8):
-        if int(line[i*3]) is 1:
-            ids_repeated.append(iid)
-            topics.append(classes[i])
-
-# TODO fino a qua sopra ok, abbiamo topics, ids_repeated e polarities, basta scrivere tutto nel file di risultato
 
 with open("data/" + TASK + "_" + EMB + "_results.csv", "w") as f:
-    f.write(columns)
-    for i, line in zip(ids, results_rounded):
+    f.write(lines[0])
+    for i, line in zip(idxs, results_rounded):
         f.write(i)
         f.write(";")
         for elem in line:
             f.write(str(elem))
             f.write(";")
         f.write("\n")
-
-print("HOPE")
