@@ -74,6 +74,10 @@ nn_model.load_weights(best_model)
 
 results = nn_model.predict(x_test)
 
+# Load reviews id
+with open("data/raw/test.csv", "r", encoding='utf-8') as f:
+    lines = f.readlines()
+
 # Transform results in polarities
 polarities = []
 for result in results:
@@ -82,15 +86,12 @@ for result in results:
     polarities.append(polarity)
 
 
-# Load reviews id
-with open("data/raw/test.csv", "r", encoding='utf-8') as f:
-    lines = f.readlines()
 
-idxs = []
+ids = []
 results_rounded = np.zeros((len(lines), 24), dtype=int)
 for i, line in enumerate(lines[1:]):
     values = line.split(";")
-    idxs.append(values[0])
+    ids.append(values[0])
     columns = values[1:]
     topic = []
     for elem in range(0, 24, 3):
@@ -108,7 +109,7 @@ for i, line in enumerate(lines[1:]):
 
 with open("data/" + TASK + "_" + EMB + "_results.csv", "w") as f:
     f.write(lines[0])
-    for i, line in zip(idxs, results_rounded):
+    for i, line in zip(ids, results_rounded):
         f.write(i)
         f.write(";")
         for elem in line:
