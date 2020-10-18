@@ -10,6 +10,11 @@ import shutil
 import os
 import pandas as pd
 import matplotlib.pyplot as plt
+from tensorboard.plugins.hparams import api as hp
+import gc
+
+# Validation too
+validation = False
 
 # Which task
 TASK = "acd"
@@ -17,7 +22,7 @@ assert TASK == "acp" or TASK == "acd"
 print("Executing " + TASK + " task")
 
 # Which embeddings
-EMB = "w2v"
+EMB = "alberto"
 assert EMB == "alberto" or EMB == "w2v"
 print("Using "+EMB+" embeddings")
 
@@ -52,50 +57,27 @@ visualize.sum(axis=0).plot.bar()
 plt.subplots_adjust(bottom=0.2)
 plt.savefig("report/imgs/"+TASK+"_y_train_historgram")
 print("Dataset Loaded")
-########################################################################################################################
-# NN model #
-########################################################################################################################
-print("Building NN Model...")
-nn_model = model(embeddings,
-                 text_max_length,
-                 target_max_length,
-                 len(classes),
-                 TASK,
-                 noise=0.2,
-                 activity_l2=0.001,
-                 drop_text_rnn_U=0.2,
-                 drop_text_input=0.3,
-                 drop_text_rnn=0.3,
-                 drop_target_rnn=0.2,
-                 final_size=64,
-                 drop_final=0.5,
-                 lr=0.001,
-                 rnn_cells=64,
-                 clipnorm=.1)
-
-print(nn_model.summary())
 
 ########################################################################################################################
-# Callbacks #
+# Hyperparameters settings #
 ########################################################################################################################
-# Erase files from older training
-if os.path.isdir(folder_best_model):
-    shutil.rmtree(folder_best_model)
-os.makedirs(folder_best_model)
+HP_RNN_CELLS = hp.HParam('num_units_rnn', hp.Discrete([64, 128, 256]))
+HP_FINAL_CELLS = hp.HParam('final_num_units', hp.Discrete([64, 128, 256]))
+# HP_DROP_REP = hp.HParam('dropout_in', hp.RealInterval(0.1, 0.2))
+# HP_DROP_OUT = hp.HParam('dropout_out', hp.RealInterval(0.2, 0.4))
 
-if os.path.isdir(logs_folder):
-    shutil.rmtree(logs_folder)
-os.makedirs(logs_folder)
+METRIC_RECALL = 'recall'
+METRIC_ACCURACY = 'accuracy'
 
-checkpointer = ModelCheckpoint(filepath=file_best_model, monitor='val_recall',
-                               mode="max", verbose=1, save_best_only=True, save_weights_only=True)
-
-tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir="./logs/"+EMB+"/"+TASK, histogram_freq=1)
-
-_callbacks = [tensorboard_callback, checkpointer]
+with tf.summary.create_file_writer('logs/'+EMB+'/'+TASK+'/hparam_tuning').as_default():
+    hp.hparams_config(
+        hparams=[HP_RNN_CELLS, HP_FINAL_CELLS],#  , HP_DROP_REP, HP_DROP_OUT],
+        metrics=[hp.Metric(METRIC_RECALL, display_name='Recall'),
+                 hp.Metric(METRIC_ACCURACY, display_name='Accuracy')],
+    )
 
 ########################################################################################################################
-# Class weights and fitting #
+# Validation settings #
 ########################################################################################################################
 class_weights = None
 if TASK == "acp":
@@ -105,6 +87,96 @@ if TASK == "acp":
     class_weights = get_class_weights2([list(elem).index(1) for elem in y_train], smooth_factor=0.1)
     print("Class weights:", {cat_to_class_mapping[c]: w for c, w in class_weights.items()})
     class_weights = {i: class_weights[w] for i, w in enumerate(class_weights.keys())}
+
+
+def validation_score_model(hparams):
+    nn_model = model(embeddings,
+                     text_max_length,
+                     target_max_length,
+                     len(classes),
+                     TASK,
+                     rnn_cells=hparams[HP_RNN_CELLS],
+                     final_cells=hparams[HP_FINAL_CELLS],
+                     # drop_rep=hparams[HP_DROP_REP],
+                     # drop_out=hparams[HP_DROP_OUT]
+                     )
+
+    nn_model.fit(x_train, y_train, epochs=15, class_weight=class_weights, batch_size=64
+                 # callbacks=[
+                 #    tf.keras.callbacks.TensorBoard(log_dir),  # log metrics
+                 #    hp.KerasCallback(log_dir, hparams),  # log hparams
+                 # ]
+                 )
+    _, accuracy, recall = nn_model.evaluate(x_val, y_val)
+    del nn_model
+
+    return accuracy, recall
+
+
+def run(run_dir, hparams):
+    with tf.summary.create_file_writer(run_dir).as_default():
+        hp.hparams(hparams)  # record the values used in this trial
+        accuracy, recall = validation_score_model(hparams)
+        gc.collect()
+        tf.summary.scalar(METRIC_ACCURACY, accuracy, step=1)
+        tf.summary.scalar(METRIC_RECALL, recall, step=1)
+
+########################################################################################################################
+# Start validation #
+########################################################################################################################
+session_num = 0
+# Erase old logs
+if validation:
+    if os.path.isdir(logs_folder):
+        shutil.rmtree(logs_folder)
+    os.makedirs(logs_folder)
+
+    for rnn_cells in HP_RNN_CELLS.domain.values:
+        for final_cells in HP_FINAL_CELLS.domain.values:
+            # for drop_rep in (HP_DROP_REP.domain.min_value, HP_DROP_REP.domain.max_value):
+            # for drop_out in (HP_DROP_OUT.domain.min_value, HP_DROP_OUT.domain.max_value):
+            hparams = {
+                HP_RNN_CELLS: rnn_cells,
+                HP_FINAL_CELLS: final_cells,
+                # HP_DROP_REP: drop_rep,
+                # HP_DROP_OUT: drop_out
+            }
+            run_name = "run-%d" % session_num
+            print('--- Starting trial: %s' % run_name)
+            print({h.name: hparams[h] for h in hparams})
+            run(logs_folder+'/hparam_tuning/' + run_name, hparams)
+            session_num += 1
+
+
+########################################################################################################################
+# TRAINING BEST MODEL #
+########################################################################################################################
+# Erase files from older training
+if os.path.isdir(folder_best_model):
+    shutil.rmtree(folder_best_model)
+os.makedirs(folder_best_model)
+
+if os.path.isdir(logs_folder+'/final_training/'):
+    shutil.rmtree(logs_folder+'/final_training/')
+os.makedirs(logs_folder+'/final_training/')
+
+checkpointer = ModelCheckpoint(filepath=file_best_model, monitor='val_recall',
+                               mode="max", verbose=1, save_best_only=True, save_weights_only=True)
+
+tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir="./logs/"+EMB+"/"+TASK, histogram_freq=1)
+
+_callbacks = [tensorboard_callback, checkpointer]
+
+nn_model = model(embeddings,
+                 text_max_length,
+                 target_max_length,
+                 len(classes),
+                 TASK,
+                 rnn_cells=128,
+                 final_cells=128,
+                 # drop_rep=hparams[HP_DROP_REP],
+                 # drop_out=hparams[HP_DROP_OUT]
+                 )
 
 history = nn_model.fit(x_train, y_train,
                        validation_data=(x_val, y_val),
