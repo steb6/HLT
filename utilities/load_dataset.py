@@ -6,6 +6,7 @@ from tqdm import tqdm
 import pickle
 from kutilities.helpers.data_preparation import categories_to_onehot
 import numpy
+import regex
 
 
 traduction = {'cleanliness': 'pulizia',
@@ -34,14 +35,7 @@ def load_dataset(which="train", text_max_length=50, target_max_length=1, task="a
     tok = None
     model = None
     polarities = None
-    if emb is "alberto":
-        # Load model
-        model = TFAutoModel.from_pretrained("m-polignano-uniba/bert_uncased_L-12_H-768_A-12_italian_alb3rt0")
-        tok = AutoTokenizer.from_pretrained("m-polignano-uniba/bert_uncased_L-12_H-768_A-12_italian_alb3rt0")
-        # print(cosine_similarity(model.predict(np.array([tok.vocab["cane"]]))[1],
-        #                        model.predict(np.array([tok.vocab["gatto"]]))[1]))
-        # print(cosine_similarity(model.predict(np.array([tok.vocab["cane"]]))[1],
-        #                         model.predict(np.array([tok.vocab["ruota"]]))[1]))
+    alberto_url = None
 
 ########################################################################################################################
 # Read CSV #
@@ -57,7 +51,8 @@ def load_dataset(which="train", text_max_length=50, target_max_length=1, task="a
     lines = [elem.split(";") for elem in lines]
     # Sanitize reviews
     for line in lines:
-        line[-1] = line[-1].replace('"', '').replace('\n', '').replace('.', '').replace(',', '').replace('\'', '')
+        line[-1] = line[-1].lower().replace('"', '').replace('\n', '').replace('.', '').replace(',', '').replace('\'', ' ')
+        line[-1] = regex.sub(r'[0-9]+', '', line[-1])
     topics = []
     reviews = []
     sentiments = []
@@ -117,6 +112,8 @@ def load_dataset(which="train", text_max_length=50, target_max_length=1, task="a
             x_train = pickle.load(open("data/alberto/" + task + "/" + which + "_reviews_embedded.pickle", "rb"))
         else:
             x_train = numpy.zeros((len(reviews), text_max_length, 768), dtype=float)
+            model = TFAutoModel.from_pretrained(alberto_url)
+            tok = AutoTokenizer.from_pretrained(alberto_url)
             print("Embedding reviews...")
             for i, review in tqdm(enumerate(reviews), total=len(reviews)):
                 ind_review = [tok.vocab[token] for token in tok.tokenize(review)]
@@ -140,6 +137,9 @@ def load_dataset(which="train", text_max_length=50, target_max_length=1, task="a
                 topics = numpy.zeros((len(reviews), target_max_length, 768), dtype=float)
                 polarities = []
                 print("Embedding topics...")
+                if model is None or tok is None:
+                    model = TFAutoModel.from_pretrained(alberto_url)
+                    tok = AutoTokenizer.from_pretrained(alberto_url)
                 for i, sentiment in tqdm(enumerate(sentiments), total=len(sentiments)):
                     topic, polarity = sentiment.split('_')
                     polarities.append(0 if polarity == 'negative' else 1 if polarity == 'mixed' else 2)

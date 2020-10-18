@@ -8,6 +8,8 @@ from utilities.embeddings_loader import load_embeddings
 from utilities.load_dataset import load_dataset
 import shutil
 import os
+import pandas as pd
+import matplotlib.pyplot as plt
 
 # Which task
 TASK = "acd"
@@ -40,17 +42,19 @@ if EMB == "w2v":
 # Load dataset ########################################################################################################
 x_train, y_train, x_val, y_val, = load_dataset(which="train", text_max_length=50, target_max_length=1,
                                                task=TASK, emb=EMB, word_indices=word_indices)
+if TASK is "acd":
+    classes = ['cleanliness', 'comfort', "amenities", "staff", "value", "wifi", "location", "other"]
+else:
+    classes = ['negative', 'mixed', 'positive']
 
-print("Dataset BERTed")
-
+visualize = pd.DataFrame(columns=classes, data=y_train)
+visualize.sum(axis=0).plot.bar()
+plt.subplots_adjust(bottom=0.2)
+plt.savefig("report/imgs/"+TASK+"_y_train_historgram")
+print("Dataset Loaded")
 ########################################################################################################################
 # NN model #
 ########################################################################################################################
-if TASK == "acp":
-    classes = ['negative', 'mixed', 'positive']
-else:
-    classes = ['cleanliness', 'comfort', "amenities", "staff", "value", "wifi", "location", "other"]
-
 print("Building NN Model...")
 nn_model = model(embeddings,
                  text_max_length,
