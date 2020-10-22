@@ -1,5 +1,6 @@
 # Human Language Technologies [2019-2020] project implementation: Deep Learning Topic Based Sentiment Analysis
 ![THe model](report/imgs/model.png)
+
 This model can perform Aspect Category Detection and Aspect Category Polarity.
 ## How to tun the code
 To install the requirements: 
