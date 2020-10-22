@@ -1,18 +1,19 @@
-To download old embeddings (if it will be online again one day): http://hlt.isti.cnr.it/wordembeddings/
-Instruction:
-- The data folder contains the datasets, inside the raw folder you can find the csv format and a dataset converter, which transform the csv file into  a tsv file in the data folder, which is the file that we are gonna use for training and testing
-- The embeddings folder contains a raw folder, which contains the compressed embedding and a script to extract them, the embeddings folder contains a txt, which is extracted with the script, and a pickle file, that will be generated at first training to speed up weights loading
-- The experiments folder contains two folders, one for task, and each folder contains weights in .hdf5 format, the training history in a pickle format, the word_indices to index correctly the words, and the training plot
-- The utilities folder contains scripts used in training and testing. I did not create class for simplicity, those folders just contains the definition of some useful function
+# Human Language Technologies [2019-2020] project implementation: Deep Learning Topic Based Sentiment Analysis
+![THe model](report/imgs/model.png)
+This model can perform Aspect Category Detection and Aspect Category Polarity.
+## How to tun the code
+To install the requirements: 
 
-I had 2 files: the training set and the official test set. I divided the training into training and validation and I use test set only for benchmarks.
-Correct usage is:
-- Download embeddings and extract them with the script
-- Download the datasets and extract them with dataset_converter (must change file path)
-- Execute train_acd and train_acp to train the models
-- Execute test_acd, extract the created dataset in csv format with dataset_converter (must change file path)
-- Execute test_acp
-- Evaluate with python absita_evaluation/evaluation_absita.py data/raw/absita_results_acp.csv absita_evaluation/absita_2018_test.csv 
+> pip install -r requirements.txt
 
-To check learning results, you can use tensorboard by just writing
-- tensorboard --logdir logs / [alberto / w2v] / [acd / acp]
+From the [train](train.py) files, you can say to the model which task it needs to learn (modifying *TASK* with *acd* or *acd*), which embedding to use (modifying *EMB* with *w2v* or *alberto*), if you want to perform validation (setting *VALIDATION* to true, this will save the grid search results inside logs/EMB/TASK/hparam_tuning that can be visualize with Tensorboard) and which is the hidden dimensions that you want to use (these are effective only if *VALIDATION* is false).
+To test a model with the Absita official evaluation script, you need to run
+
+> python [test.py](test.py)
+
+Settings the right values of the hidden dimensions, that can be seen from the checkpoint directory (*checkpoints/EMB/TASK/model_rnn_cells_final_cells).
+To visualize the training history obtained, you just need to do
+
+> tensorboard --logdir logs/EMB/TASK/final_training
+
+this will create the temporary files *data/emb_tas_results.csv* and call the [evaluation Absita script](data/raw/evaluation_absita.py) with the right parameters.
