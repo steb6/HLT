@@ -1,5 +1,4 @@
-import pickle
-from keras.callbacks import ModelCheckpoint
+from keras.callbacks import ModelCheckpoint, EarlyStopping
 from kutilities.helpers.data_preparation import get_class_weights2
 from utilities.model import model
 import tensorflow as tf
@@ -13,16 +12,19 @@ import matplotlib.pyplot as plt
 from tensorboard.plugins.hparams import api as hp
 import gc
 
+rnn_cells = 256
+final_cells = 64
+
 # Validation too
 validation = False
 
 # Which task
-TASK = "acd"
+TASK = "acp"
 assert TASK == "acp" or TASK == "acd"
 print("Executing " + TASK + " task")
 
 # Which embeddings
-EMB = "alberto"
+EMB = "w2v"
 assert EMB == "alberto" or EMB == "w2v"
 print("Using "+EMB+" embeddings")
 
@@ -68,12 +70,14 @@ HP_FINAL_CELLS = hp.HParam('final_num_units', hp.Discrete([64, 128, 256]))
 
 METRIC_RECALL = 'recall'
 METRIC_ACCURACY = 'accuracy'
+EPOCHS = 'epochs'
 
 with tf.summary.create_file_writer('logs/'+EMB+'/'+TASK+'/hparam_tuning').as_default():
     hp.hparams_config(
         hparams=[HP_RNN_CELLS, HP_FINAL_CELLS],#  , HP_DROP_REP, HP_DROP_OUT],
         metrics=[hp.Metric(METRIC_RECALL, display_name='Recall'),
-                 hp.Metric(METRIC_ACCURACY, display_name='Accuracy')],
+                 hp.Metric(METRIC_ACCURACY, display_name='Accuracy'),
+                 hp.Metric(EPOCHS, display_name='Epochs')]
     )
 
 ########################################################################################################################
@@ -89,7 +93,7 @@ if TASK == "acp":
     class_weights = {i: class_weights[w] for i, w in enumerate(class_weights.keys())}
 
 
-def validation_score_model(hparams):
+def validation_score_model(hparams, n_run):
     nn_model = model(embeddings,
                      text_max_length,
                      target_max_length,
@@ -100,37 +104,46 @@ def validation_score_model(hparams):
                      # drop_rep=hparams[HP_DROP_REP],
                      # drop_out=hparams[HP_DROP_OUT]
                      )
-
-    nn_model.fit(x_train, y_train, epochs=15, class_weight=class_weights, batch_size=64
-                 # callbacks=[
-                 #    tf.keras.callbacks.TensorBoard(log_dir),  # log metrics
-                 #    hp.KerasCallback(log_dir, hparams),  # log hparams
-                 # ]
-                 )
+    patience = 10
+    epochs = 50
+    stopper = EarlyStopping(monitor="val_recall",# if n_run is 0 else "val_recall_"+str(n_run),
+                            min_delta=0.01, patience=patience, verbose=2, mode="max",
+                            restore_best_weights=True)
+    history = nn_model.fit(x_train, y_train, epochs=epochs, class_weight=class_weights, batch_size=64,
+                           validation_data=(x_val, y_val), callbacks=[stopper])
+    # callbacks=[
+    #    tf.keras.callbacks.TensorBoard(log_dir),  # log metrics
+    #    hp.KerasCallback(log_dir, hparams),  # log hparams
+    # ])
     _, accuracy, recall = nn_model.evaluate(x_val, y_val)
     del nn_model
 
-    return accuracy, recall
+    return accuracy, recall, epochs if len(history.epoch) is epochs else len(history.epoch) - patience
 
 
-def run(run_dir, hparams):
+def run(run_dir, hparams, n_run):
     with tf.summary.create_file_writer(run_dir).as_default():
         hp.hparams(hparams)  # record the values used in this trial
-        accuracy, recall = validation_score_model(hparams)
+        accuracy, recall, epochs = validation_score_model(hparams, n_run)
         gc.collect()
+        # To free memory for w2v model
+        tf.keras.backend.clear_session()
         tf.summary.scalar(METRIC_ACCURACY, accuracy, step=1)
         tf.summary.scalar(METRIC_RECALL, recall, step=1)
+        tf.summary.scalar(EPOCHS, epochs, step=1)
+
 
 ########################################################################################################################
 # Start validation #
 ########################################################################################################################
 session_num = 0
-# Erase old logs
+
 if validation:
+    # Erase old logs
     if os.path.isdir(logs_folder):
         shutil.rmtree(logs_folder)
     os.makedirs(logs_folder)
-
+    # Grid search
     for rnn_cells in HP_RNN_CELLS.domain.values:
         for final_cells in HP_FINAL_CELLS.domain.values:
             # for drop_rep in (HP_DROP_REP.domain.min_value, HP_DROP_REP.domain.max_value):
@@ -144,13 +157,15 @@ if validation:
             run_name = "run-%d" % session_num
             print('--- Starting trial: %s' % run_name)
             print({h.name: hparams[h] for h in hparams})
-            run(logs_folder+'/hparam_tuning/' + run_name, hparams)
+            run(logs_folder+'/hparam_tuning/' + run_name, hparams, session_num)
             session_num += 1
+    exit()
 
 
 ########################################################################################################################
 # TRAINING BEST MODEL #
 ########################################################################################################################
+
 # Erase files from older training
 if os.path.isdir(folder_best_model):
     shutil.rmtree(folder_best_model)
@@ -160,10 +175,11 @@ if os.path.isdir(logs_folder+'/final_training/'):
     shutil.rmtree(logs_folder+'/final_training/')
 os.makedirs(logs_folder+'/final_training/')
 
-checkpointer = ModelCheckpoint(filepath=file_best_model, monitor='val_recall',
+augmented_filename = file_best_model+'_'+str(rnn_cells)+'_'+str(final_cells)
+checkpointer = ModelCheckpoint(filepath=augmented_filename, monitor='val_recall',
                                mode="max", verbose=1, save_best_only=True, save_weights_only=True)
 
-tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir="./logs/"+EMB+"/"+TASK, histogram_freq=1)
+tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir="./logs/"+EMB+"/"+TASK+"/final_training/", histogram_freq=1)
 
 _callbacks = [tensorboard_callback, checkpointer]
 
@@ -172,11 +188,12 @@ nn_model = model(embeddings,
                  target_max_length,
                  len(classes),
                  TASK,
-                 rnn_cells=128,
-                 final_cells=128,
+                 rnn_cells=rnn_cells,
+                 final_cells=final_cells,
                  # drop_rep=hparams[HP_DROP_REP],
                  # drop_out=hparams[HP_DROP_OUT]
                  )
+
 
 history = nn_model.fit(x_train, y_train,
                        validation_data=(x_val, y_val),

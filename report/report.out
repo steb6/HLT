@@ -1,12 +1,16 @@
-\BOOKMARK [1][-]{section.1}{Task, dataset and metrics}{}% 1
-\BOOKMARK [1][-]{section.2}{Description of the models}{}% 2
-\BOOKMARK [2][-]{subsection.2.1}{ACP}{section.2}% 3
-\BOOKMARK [3][-]{subsubsection.2.1.1}{Word2Vec}{subsection.2.1}% 4
-\BOOKMARK [3][-]{subsubsection.2.1.2}{AlBERTo}{subsection.2.1}% 5
-\BOOKMARK [2][-]{subsection.2.2}{ACD}{section.2}% 6
-\BOOKMARK [3][-]{subsubsection.2.2.1}{Word2Vec}{subsection.2.2}% 7
-\BOOKMARK [3][-]{subsubsection.2.2.2}{AlBERTo}{subsection.2.2}% 8
-\BOOKMARK [1][-]{section.3}{Results}{}% 9
-\BOOKMARK [2][-]{subsection.3.1}{ACD}{section.3}% 10
-\BOOKMARK [2][-]{subsection.3.2}{ACP}{section.3}% 11
-\BOOKMARK [1][-]{section.4}{Conclusion}{}% 12
+\BOOKMARK [1][-]{section.1}{Problem description}{}% 1
+\BOOKMARK [2][-]{subsection.1.1}{Tasks}{section.1}% 2
+\BOOKMARK [2][-]{subsection.1.2}{Dataset}{section.1}% 3
+\BOOKMARK [2][-]{subsection.1.3}{Metrics}{section.1}% 4
+\BOOKMARK [1][-]{section.2}{Description of the models}{}% 5
+\BOOKMARK [2][-]{subsection.2.1}{Structure of the models}{section.2}% 6
+\BOOKMARK [2][-]{subsection.2.2}{Hyperparameters tuning}{section.2}% 7
+\BOOKMARK [1][-]{section.3}{Training best models}{}% 8
+\BOOKMARK [2][-]{subsection.3.1}{ACP}{section.3}% 9
+\BOOKMARK [3][-]{subsubsection.3.1.1}{Word2Vec}{subsection.3.1}% 10
+\BOOKMARK [3][-]{subsubsection.3.1.2}{AlBERTo}{subsection.3.1}% 11
+\BOOKMARK [2][-]{subsection.3.2}{ACD}{section.3}% 12
+\BOOKMARK [3][-]{subsubsection.3.2.1}{Word2Vec}{subsection.3.2}% 13
+\BOOKMARK [3][-]{subsubsection.3.2.2}{AlBERTo}{subsection.3.2}% 14
+\BOOKMARK [1][-]{section.4}{Results}{}% 15
+\BOOKMARK [1][-]{section.5}{Conclusion}{}% 16

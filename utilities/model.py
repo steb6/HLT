@@ -35,7 +35,7 @@ def model(wv, tweet_max_length, aspect_max_length, classes, task, rnn_cells=0, f
     drop_text_input = 0.3
 
     drop_rep = 0.2
-    drop_out = 0.3
+    drop_out = 0.5
 
     final_type = "linear"
     activity_l2 = 0.001
@@ -48,43 +48,80 @@ def model(wv, tweet_max_length, aspect_max_length, classes, task, rnn_cells=0, f
     shared_RNN = Bidirectional(LSTM(rnn_cells, dropout=drop_rnn, return_sequences=True))
 
     # GET the right model, if wv is None, then we already have the embeddings (BERT)
+    # if wv is not None:
+    #     input_tweet = Input(shape=[tweet_max_length], dtype='int32')
+    #     tweets_emb = Embedding(input_dim=wv.shape[0],
+    #                            output_dim=wv.shape[1],
+    #                            input_length=tweet_max_length,
+    #                            trainable=False,
+    #                            mask_zero=True,
+    #                            weights=[wv])(input_tweet)
+    #     tweets_emb = GaussianNoise(noise)(tweets_emb)
+    #     tweets_emb = Dropout(drop_text_input)(tweets_emb)
+    #
+    #     h_tweets = shared_RNN(tweets_emb)
+    #     h_tweets = Dropout(drop_text_rnn)(h_tweets)
+    #
+    #     input_aspect = Input(shape=[aspect_max_length], dtype='int32')
+    #     aspects_emb = Embedding(input_dim=wv.shape[0],
+    #                             output_dim=wv.shape[1],
+    #                             input_length=aspect_max_length,
+    #                             trainable=False,
+    #                             mask_zero=True,
+    #                             weights=[wv])(input_aspect)
+    #     aspects_emb = GaussianNoise(noise)(aspects_emb)
+    #
+    #     h_aspects = shared_RNN(aspects_emb)
+    #     h_aspects = Dropout(drop_target_rnn)(h_aspects)
+    #     h_aspects = MeanOverTime()(h_aspects)
+    #     h_aspects = RepeatVector(tweet_max_length)(h_aspects)
+    # else:
+    #     # We give already the embedding
+    #     input_tweet = Input(shape=(tweet_max_length, 768,), dtype='float32')
+    #     tweets_emb = GaussianNoise(noise)(input_tweet)
+    #     tweets_emb = Dropout(drop_text_input)(tweets_emb)
+    #
+    #     h_tweets = shared_RNN(tweets_emb)
+    #     h_tweets = Dropout(drop_text_rnn)(h_tweets)
+    #
+    #     input_aspect = Input(shape=(aspect_max_length, 768,), dtype='float32')
+    #     aspects_emb = GaussianNoise(noise)(input_aspect)
+    #     h_aspects = shared_RNN(aspects_emb)
+    #     h_aspects = Dropout(drop_target_rnn)(h_aspects)
+    #     h_aspects = MeanOverTime()(h_aspects)
+    #     h_aspects = RepeatVector(tweet_max_length)(h_aspects)
+
     if wv is not None:
         input_tweet = Input(shape=[tweet_max_length], dtype='int32')
-        input_aspect = Input(shape=[aspect_max_length], dtype='int32')
         tweets_emb = Embedding(input_dim=wv.shape[0],
                                output_dim=wv.shape[1],
                                input_length=tweet_max_length,
                                trainable=False,
                                mask_zero=True,
                                weights=[wv])(input_tweet)
-        tweets_emb = GaussianNoise(noise)(tweets_emb)
-        tweets_emb = Dropout(drop_text_input)(tweets_emb)
-
+        input_aspect = Input(shape=[aspect_max_length], dtype='int32')
         aspects_emb = Embedding(input_dim=wv.shape[0],
                                 output_dim=wv.shape[1],
                                 input_length=aspect_max_length,
                                 trainable=False,
                                 mask_zero=True,
                                 weights=[wv])(input_aspect)
-        aspects_emb = GaussianNoise(noise)(aspects_emb)
-        h_tweets = shared_RNN(tweets_emb)
-        h_tweets = Dropout(drop_text_rnn)(h_tweets)
-
-        h_aspects = shared_RNN(aspects_emb)
-        h_aspects = Dropout(drop_target_rnn)(h_aspects)
-        h_aspects = MeanOverTime()(h_aspects)
-        h_aspects = RepeatVector(tweet_max_length)(h_aspects)
     else:
-        # We give already the embedding
         input_tweet = Input(shape=(tweet_max_length, 768,), dtype='float32')
+        tweets_emb = input_tweet
         input_aspect = Input(shape=(aspect_max_length, 768,), dtype='float32')
-        h_tweets = shared_RNN(input_tweet)
-        h_tweets = Dropout(drop_text_rnn)(h_tweets)
+        aspects_emb = input_aspect
 
-        h_aspects = shared_RNN(input_aspect)
-        h_aspects = Dropout(drop_target_rnn)(h_aspects)
-        h_aspects = MeanOverTime()(h_aspects)
-        h_aspects = RepeatVector(tweet_max_length)(h_aspects)
+    tweets_emb = GaussianNoise(noise)(tweets_emb)
+    tweets_emb = Dropout(drop_text_input)(tweets_emb)
+    h_tweets = shared_RNN(tweets_emb)
+    h_tweets = Dropout(drop_text_rnn)(h_tweets)
+
+    aspects_emb = GaussianNoise(noise)(aspects_emb)
+    h_aspects = shared_RNN(aspects_emb)
+    h_aspects = Dropout(drop_target_rnn)(h_aspects)
+    h_aspects = MeanOverTime()(h_aspects)
+    h_aspects = RepeatVector(tweet_max_length)(h_aspects)
 
     # Merge of Aspect + Tweet
     if task == "acp":
@@ -118,9 +155,18 @@ def model(wv, tweet_max_length, aspect_max_length, classes, task, rnn_cells=0, f
 
     final_model = Model(inputs=[input_aspect, input_tweet] if task is "acp" else input_tweet,
                         outputs=probabilities)
-
     final_model.compile(optimizer=Adam(clipnorm=clipnorm, lr=lr),
                         loss="categorical_crossentropy" if task is "acp" else "binary_crossentropy",
                         metrics=['accuracy', tf.keras.metrics.Recall()])
 
     return final_model
+
+
+def simple_model(classes):
+    deep_inputs = Input(shape=(50, 768,))
+    LSTM_Layer_1 = LSTM(300)(deep_inputs)
+    dense_layer_1 = Dense(classes, activation='sigmoid')(LSTM_Layer_1)
+    model = Model(inputs=deep_inputs, outputs=dense_layer_1)
+
+    model.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy', tf.keras.metrics.Recall()])
+    return model

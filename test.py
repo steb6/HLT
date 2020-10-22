@@ -4,9 +4,14 @@ from utilities.matrix_wv_generator import matrix_wv_generator
 from utilities.embeddings_loader import load_embeddings
 from utilities.load_dataset import load_dataset
 import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+
+rnn_cells = 256
+final_cells = 128
 
 # Which task
-TASK = "acd"
+TASK = "acp"
 assert TASK == "acp" or TASK == "acd"
 print("Executing " + TASK + " task")
 
@@ -43,26 +48,26 @@ if TASK == "acp":
 else:
     classes = ['cleanliness', 'comfort', "amenities", "staff", "value", "wifi", "location", "other"]
 
+visualize = pd.DataFrame(columns=classes, data=y_test)
+visualize.sum(axis=0).plot.bar()
+plt.subplots_adjust(bottom=0.2)
+plt.savefig("report/imgs/"+TASK+"_y_test_historgram")
+
 print("Building NN Model...")
 nn_model = model(embeddings,
                  text_max_length,
                  target_max_length,
                  len(classes),
                  TASK,
-                 noise=0.2,
-                 activity_l2=0.001,
-                 drop_text_rnn_U=0.2,
-                 drop_text_input=0.3,
-                 drop_text_rnn=0.3,
-                 drop_target_rnn=0.2,
-                 final_size=64,
-                 drop_final=0.5,
-                 lr=0.001,
-                 rnn_cells=64,
-                 clipnorm=.1)
+                 rnn_cells=rnn_cells,
+                 final_cells=final_cells,
+                 # drop_rep=hparams[HP_DROP_REP],
+                 # drop_out=hparams[HP_DROP_OUT]
+                 )
 
 # print(nn_model.summary())
-nn_model.load_weights(file_best_model)
+augmented_filename = file_best_model+'_'+str(rnn_cells)+'_'+str(final_cells)
+nn_model.load_weights(augmented_filename)
 print("Model loaded!")
 results = nn_model.predict(x_test)
 
